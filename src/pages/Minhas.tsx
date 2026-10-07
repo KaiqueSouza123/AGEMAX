@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Item, alerta, ordenar, placar, noMes, hojeSP, iso, dt, fmt, fmtw, prazoDe } from "../regras";
+import { Item, temArte, alerta, ordenar, placar, noMes, hojeSP, iso, dt, fmt, fmtw, prazoDe } from "../regras";
 import { Head, Modal, useBusy } from "../ui";
-import { EntregaForm } from "./tabela";
+import { EntregaForm, EntregaVer } from "./entrega";
 
 type Col = { chave: string; nome: string; dica: string; cor: string; status: string[] };
 const COLUNAS: Col[] = [
   { chave: "fazer", nome: "A fazer", dica: "Ordem: prazo da arte mais perto primeiro.", cor: "var(--mute)", status: ["A fazer"] },
-  { chave: "prod", nome: "Em produção", dica: "Quando terminar, cole o link e entregue.", cor: "var(--teal)", status: ["Em produção"] },
+  { chave: "prod", nome: "Em produção", dica: "Terminou? Anexe a imagem ou o vídeo (ou o link) e entregue.", cor: "var(--teal)", status: ["Em produção"] },
   { chave: "aprov", nome: "Aguardando aprovação", dica: "Entregue. Agora é com o dono.", cor: "var(--ok)", status: ["Entregue"] },
   { chave: "ajuste", nome: "Ajustes pedidos", dica: "Voltou para você com o que mudar.", cor: "var(--bad)", status: ["Ajustes"] },
 ];
@@ -31,6 +31,7 @@ function rotuloPrazo(i: Item): { txt: string; cls: string } {
 export default function Minhas({ d }: { d: Dados }) {
   const [filtro, setFiltro] = useState<string>("");
   const [entregar, setEntregar] = useState<Item | null>(null);
+  const [ver, setVer] = useState<Item | null>(null);
   const [aberto, setAberto] = useState<number | null>(null);
   const { run } = useBusy();
 
@@ -43,7 +44,7 @@ export default function Minhas({ d }: { d: Dados }) {
   const vis = filtro ? ativas.filter(i => i.cliente_id === filtro) : ativas;
 
   const doMes = minhas.filter(i => noMes(i, mesAtual));
-  const prontas = doMes.filter(i => ["Entregue", "Aprovado", "Postado"].includes(i.status) && i.link).length;
+  const prontas = doMes.filter(i => ["Entregue", "Aprovado", "Postado"].includes(i.status) && temArte(i)).length;
   const atrasadas = ativas.filter(i => alerta(i) === "ATRASADO").length;
   const p = placar(doMes);
 
@@ -94,7 +95,7 @@ export default function Minhas({ d }: { d: Dados }) {
                           <div className="kbrief">
                             <div><b>{i.tipo}</b> · post {fmtw(dt(i.data_post))}</div>
                             {i.briefing && <div>{i.briefing}</div>}
-                            {i.link && <a href={i.link} target="_blank" rel="noopener noreferrer">abrir a arte entregue</a>}
+                            {temArte(i) && <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setVer(i)}>ver o que foi entregue</button>}
                           </div>
                         )}
                         <div className="kfoot">
@@ -105,9 +106,9 @@ export default function Minhas({ d }: { d: Dados }) {
                           </span>}
                           {i.status === "Em produção" && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Entregar</button>}
                           {i.status === "Ajustes" && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Reenviar</button>}
-                          {i.status === "Entregue" && (i.link
-                            ? <a className="btn sm" href={i.link} target="_blank" rel="noopener noreferrer">Ver arte</a>
-                            : <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Colar link</button>)}
+                          {i.status === "Entregue" && (temArte(i)
+                            ? <button type="button" className="btn sm" onClick={() => setVer(i)}>Ver arte</button>
+                            : <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Entregar</button>)}
                         </div>
                       </article>
                     );
@@ -119,6 +120,9 @@ export default function Minhas({ d }: { d: Dados }) {
         )}
       <Modal open={!!entregar} onClose={() => setEntregar(null)}>
         {entregar && <EntregaForm d={d} i={entregar} fechar={() => setEntregar(null)} />}
+      </Modal>
+      <Modal open={!!ver} onClose={() => setVer(null)}>
+        {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)} />}
       </Modal>
     </>
   );

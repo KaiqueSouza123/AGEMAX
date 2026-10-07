@@ -5,8 +5,8 @@ import { marcarBoasVindas } from "../aprenda-progresso";
 export default function BoasVindas({ aberto, d, fechar }: { aberto: boolean; d: Dados; fechar: () => void }) {
   const sair = () => { marcarBoasVindas(d.me.id); fechar(); };
   const itens = d.ehDono
-    ? [["tg0", "Painel", "mostra quem está entregando e o que está atrasado."], ["tg2", "Produção e Calendários", "é onde você lança e edita os posts da equipe."], ["tg3", "Aprovar", "é o que você faz quando alguém entrega uma arte."]]
-    : [["tg0", "Seu quadro", "mostra cada arte e em que etapa ela está."], ["tg2", "O prazo da arte", "é 3 dias úteis antes do post."], ["tg3", "Entregar", "é colar o link do Drive ou do Canva."]];
+    ? [["tg0", "Painel", "mostra quem está entregando e o que está atrasado."], ["tg2", "Produção e Calendários", "é onde você lança e edita os posts da equipe."], ["tg3", "Aprovar", "é ver, baixar e aprovar o que a equipe entrega."]]
+    : [["tg0", "Seu quadro", "mostra cada arte e em que etapa ela está."], ["tg2", "O prazo da arte", "é 3 dias úteis antes do post."], ["tg3", "Entregar", "é anexar a imagem ou o vídeo (ou colar o link)."]];
   return (
     <Modal open={aberto} onClose={sair}>
       <div className="bv">

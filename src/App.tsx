@@ -13,6 +13,7 @@ import Equipe from "./pages/Equipe";
 import WhatsApp from "./pages/WhatsApp";
 import Aprenda from "./pages/Aprenda";
 import Radar from "./pages/Radar";
+import { limparArquivos } from "./pages/entrega";
 import BoasVindas from "./pages/BoasVindas";
 import { EVENTO_APRENDA, licoesVistas, viuBoasVindas } from "./aprenda-progresso";
 
@@ -119,6 +120,12 @@ export default function App() {
   const views = ehDono ? VIEWS_DONO : VIEWS_FUNC;
   const atual = views.some(v => v[0] === view) ? view : views[0][0];
   const ir = (v: string) => { setMenu(false); setView(v); history.replaceState(null, "", "#" + v); window.scrollTo(0, 0); };
+
+  // limpeza automática dos arquivos de entrega (fim do mês ou perto de lotar), feita quando um dono abre o site
+  useEffect(() => {
+    if (me?.papel !== "dono") return;
+    limparArquivos().catch(() => { /* tenta de novo na próxima vez */ });
+  }, [me?.id]);
 
   // aba Aprenda: selo NOVO até a primeira lição e boas-vindas no primeiro acesso
   const [nVistas, setNVistas] = useState(0);

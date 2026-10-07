@@ -11,8 +11,10 @@ export type Cliente = {
 export type Item = {
   id: number; cliente_id: string; tema: string; tipo: string; data_post: string;
   responsavel_id: string | null; status: string; link: string | null; entregue_em: string | null;
-  briefing: string | null; objetivo: string | null;
+  briefing: string | null; objetivo: string | null; n_arquivos?: number;
 };
+// a arte conta como entregue com link OU com arquivo anexado
+export const temArte = (i: Item) => !!(i.link && i.link.trim()) || (i.n_arquivos || 0) > 0;
 
 export type RadarSemana = { id: string; inicio: string; em_alta: { tipo: string; nome: string; sub?: string }[]; publicado_em: string | null };
 export type RadarIdeia = {
@@ -63,7 +65,7 @@ export type Alerta = "OK" | "ATRASADO" | "SEM LINK" | "VENCE HOJE" | "VENCE EM B
 export function alerta(i: Item, hoje = hojeSP()): Alerta {
   const p = prazoDe(i);
   if (ehPrazoCliente(i)) return hoje > p ? "ATRASADO" : iso(hoje) === iso(p) ? "VENCE HOJE" : uteisEntre(hoje, p) <= 2 ? "VENCE EM BREVE" : "NO PRAZO";
-  if (ENTREGUE.has(i.status) && !i.link) return "SEM LINK";
+  if (ENTREGUE.has(i.status) && !temArte(i)) return "SEM LINK";
   if (i.status === "Aprovado" || i.status === "Postado") return "OK";
   if (i.status === "Entregue") return "AGUARDA APROVAÇÃO";
   if (iso(hoje) > iso(p)) return "ATRASADO";
@@ -82,7 +84,7 @@ export function ordenar(its: Item[]): Item[] {
 export function pontual(i: Item, hoje = hojeSP()): "prazo" | "atraso" | "pendente" | null {
   if (ehPrazoCliente(i)) return null;
   const p = prazoDe(i);
-  if (ENTREGUE.has(i.status) && i.link && i.entregue_em) return i.entregue_em <= iso(p) ? "prazo" : "atraso";
+  if (ENTREGUE.has(i.status) && temArte(i) && i.entregue_em) return i.entregue_em <= iso(p) ? "prazo" : "atraso";
   if (iso(hoje) > iso(p)) return "pendente";
   return null;
 }

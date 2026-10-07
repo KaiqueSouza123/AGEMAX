@@ -1,13 +1,16 @@
 import { FormEvent, useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Item, TIPOS, STATUS, alerta, dt, fmtw, prazoDe, ehPrazoCliente } from "../regras";
+import { Item, TIPOS, STATUS, alerta, dt, fmtw, prazoDe, ehPrazoCliente, temArte } from "../regras";
+import { EntregaForm, EntregaVer } from "./entrega";
+export { EntregaForm };
 import { Chip, Modal, useBusy } from "../ui";
 
 const ENTREGUE = new Set(["Entregue", "Aprovado", "Postado"]);
 
 export function TabelaProducao({ d, its, comResp, onEditar }: { d: Dados; its: Item[]; comResp: boolean; onEditar?: (i: Item) => void }) {
   const [entregar, setEntregar] = useState<Item | null>(null);
+  const [ver, setVer] = useState<Item | null>(null);
   const { run } = useBusy();
 
   const mudar = async (i: Item, patch: Partial<Item>, msg: string) => {
@@ -41,18 +44,18 @@ export function TabelaProducao({ d, its, comResp, onEditar }: { d: Dados; its: I
                   <td className="dt">{fmtw(dt(i.data_post))}</td>
                   <td className="dt">{fmtw(prazoDe(i))}</td>
                   <td>{i.status}</td>
-                  <td>{i.link ? <a href={i.link} target="_blank" rel="noopener noreferrer">ver arte</a> : <span className="muted">—</span>}</td>
+                  <td>{temArte(i) ? <button type="button" className="linkbtn" onClick={() => setVer(i)}>{i.n_arquivos ? `ver ${i.n_arquivos} arquivo${i.n_arquivos > 1 ? "s" : ""}` : "ver arte"}</button> : <span className="muted">—</span>}</td>
                   <td><Chip a={a} /></td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     {ehPrazoCliente(i) ? (d.ehDono && onEditar ? <button type="button" className="btn sm" onClick={() => onEditar(i)}>Editar</button> : null) : meu ? (
                       <>
                         {(i.status === "A fazer") && <button type="button" className="btn sm" onClick={() => mudar(i, { status: "Em produção" }, "Marcado como em produção")}>Comecei</button>}{" "}
-                        {(!ENTREGUE.has(i.status) || !i.link) && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>{i.status === "Ajustes" ? "Reenviar" : "Entregar"}</button>}
-                        {ENTREGUE.has(i.status) && i.link && <span className="muted">{i.status === "Entregue" ? "aguardando aprovação" : i.status}</span>}
+                        {(!ENTREGUE.has(i.status) || !temArte(i)) && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>{i.status === "Ajustes" ? "Reenviar" : "Entregar"}</button>}
+                        {ENTREGUE.has(i.status) && temArte(i) && <span className="muted">{i.status === "Entregue" ? "aguardando aprovação" : i.status}</span>}
                       </>
                     ) : (
                       <>
-                        {i.status === "Entregue" && i.link && <><button type="button" className="btn gold sm" onClick={() => mudar(i, { status: "Aprovado" }, "Arte aprovada")}>Aprovar</button>{" "}
+                        {i.status === "Entregue" && temArte(i) && <><button type="button" className="btn sm" onClick={() => setVer(i)}>Ver entrega</button>{" "}<button type="button" className="btn gold sm" onClick={() => mudar(i, { status: "Aprovado" }, "Arte aprovada")}>Aprovar</button>{" "}
                           <button type="button" className="btn sm" onClick={() => mudar(i, { status: "Ajustes" }, "Ajuste pedido. A pessoa vê na tela dela.")}>Pedir ajuste</button>{" "}</>}
                         {i.status === "Aprovado" && <><button type="button" className="btn sm" onClick={() => mudar(i, { status: "Postado" }, "Marcado como postado")}>Postado</button>{" "}</>}
                         {onEditar && <button type="button" className="btn sm" onClick={() => onEditar(i)}>Editar</button>}
@@ -68,28 +71,12 @@ export function TabelaProducao({ d, its, comResp, onEditar }: { d: Dados; its: I
       <Modal open={!!entregar} onClose={() => setEntregar(null)}>
         {entregar && <EntregaForm d={d} i={entregar} fechar={() => setEntregar(null)} />}
       </Modal>
+      <Modal open={!!ver} onClose={() => setVer(null)}>
+        {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)}
+          aprovar={d.ehDono && ver.status === "Entregue" ? () => { const x = ver; setVer(null); mudar(x, { status: "Aprovado" }, "Arte aprovada"); } : undefined}
+          ajuste={d.ehDono && ver.status === "Entregue" ? () => { const x = ver; setVer(null); mudar(x, { status: "Ajustes" }, "Ajuste pedido. A pessoa vê na tela dela."); } : undefined} />}
+      </Modal>
     </>
-  );
-}
-
-export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () => void }) {
-  const [link, setLink] = useState(i.link || "");
-  const { busy, err, run } = useBusy();
-  const enviar = async (e: FormEvent) => {
-    e.preventDefault();
-    const ok = await run(() => supabase.from("itens").update({ status: "Entregue", link: link.trim() }).eq("id", i.id) as any);
-    if (ok) { fechar(); d.aviso("Entregue. O alerta saiu da lista de cobrança."); d.recarregar(); }
-  };
-  return (
-    <form className="form" onSubmit={enviar}>
-      <h2>Entregar arte</h2>
-      <p className="muted" style={{ margin: 0 }}>{d.cliente(i.cliente_id)?.nome} · {i.tema}</p>
-      <label htmlFor="ent-link">Link da arte (Drive ou Canva)
-        <input id="ent-link" type="url" required value={link} onChange={e => setLink(e.target.value)} placeholder="https://drive.google.com/..." />
-      </label>
-      {err && <div className="err">{err}</div>}
-      <div className="acts"><button type="button" className="btn" onClick={fechar}>Cancelar</button><button type="submit" className="btn pri" disabled={busy}>Entregar</button></div>
-    </form>
   );
 }
 

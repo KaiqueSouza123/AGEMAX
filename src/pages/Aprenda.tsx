@@ -20,6 +20,18 @@ const MLink = () => (
     <span className="ktag tg0" style={{ alignSelf: "flex-start" }}>Link copiado</span>
   </div>
 );
+const MArquivos = () => (
+  <div className="mv-stack" style={{ justifyItems: "stretch" }}>
+    <span className="mv-drop">Arraste ou escolha o arquivo</span>
+    <div className="mv-thumbs"><span className="t1">PNG ✓</span><span className="t2">MP4 ✓</span><span className="t3">ou link</span></div>
+  </div>
+);
+const MVer = () => (
+  <div className="mv-card">
+    <div className="mv-thumbs"><span className="t1" style={{ height: 54 }}>prévia</span><span className="t2" style={{ height: 54 }}>▶ vídeo</span></div>
+    <div className="mv-row"><span className="mv-mute">2 arquivos</span><span className="mv-btn foco">Baixar os 2</span></div>
+  </div>
+);
 const MEntrega = () => (
   <div className="mv-card">
     <b>Entregar arte</b>
@@ -96,13 +108,13 @@ const FUNC: Licao[] = [
       { v: <MCols foco={1} />, t: <><b>Em produção</b>: o que você está fazendo agora.</> },
       { v: <MCols foco={2} />, t: <><b>Aguardando aprovação</b>: você entregou, agora é com o dono. Se ele pedir mudança, a arte vai para <b>Ajustes</b>.</> },
     ], dica: <>Clique no nome do post para ver o <b>briefing</b>. Com mais de um cliente, use os botões do topo para filtrar.</>, praticar: ["minhas", "Ver meu quadro"] },
-  { id: "f3", titulo: "Como entregar uma arte", sub: "Comecei, link e Entregar", min: 1,
-    intro: "A entrega só conta quando tem o link da arte. São três passos.",
+  { id: "f3", titulo: "Como entregar uma arte", sub: "Arquivo ou link, e Entregar", min: 1,
+    intro: "Agora dá para enviar o próprio arquivo, sem precisar de link. A entrega conta quando tem arquivo ou link.",
     passos: [
       { v: <MCard titulo="Assistência técnica" botao="Comecei" foco />, t: <>Abriu a arte para fazer? Clique em <b>Comecei</b>. Ela vai para Em produção.</> },
-      { v: <MLink />, t: <>Terminou? Salve no <b>Drive</b> ou no <b>Canva</b> e copie o link. Confira se o link está aberto para a Agemax.</> },
-      { v: <MEntrega />, t: <>No cartão, clique em <b>Entregar</b>, cole o link e confirme. Pronto: ela vai para Aguardando aprovação.</> },
-    ], dica: <>Terminou sem ter clicado em Comecei? Use <b>já terminei</b> no cartão e entregue direto.</>, praticar: ["minhas", "Entregar uma arte"] },
+      { v: <MArquivos />, t: <>Terminou? Clique em <b>Entregar</b> e anexe a <b>imagem ou o vídeo</b> (até 50 MB cada) ou cole o <b>link</b> do Drive/Canva. Pode usar os dois. No celular, escolha da galeria ou da câmera.</> },
+      { v: <MEntrega />, t: <>Espere o envio terminar e clique em <b>Entregar</b>. A arte vai para Aguardando aprovação e o dono baixa direto da plataforma.</> },
+    ], dica: <>Vídeo com mais de 50 MB? Envie pelo <b>link do Drive</b>. Terminou sem ter clicado em Comecei? Use <b>já terminei</b> no cartão.</>, praticar: ["minhas", "Entregar uma arte"] },
   { id: "f4", titulo: "Prazos e cores", sub: "Dourado, HOJE e atrasada", min: 1,
     intro: "O prazo que importa para você é o da arte, não o dia do post.",
     passos: [
@@ -114,8 +126,8 @@ const FUNC: Licao[] = [
     intro: "Se o dono pedir mudança, a arte volta para você na coluna Ajustes pedidos.",
     passos: [
       { v: <MCols foco={3} />, t: <>A arte aparece em <b>Ajustes pedidos</b>, com o prazo para refazer.</> },
-      { v: <MLink />, t: <>Faça a mudança e copie o link de novo (pode ser o mesmo arquivo atualizado).</> },
-      { v: <MCard tag="Sand" tg="tg3" titulo="Reboco sem trinca" prazo="refazer até sex 16/10" pc="pz-gold" botao="Reenviar" pri foco />, t: <>Clique em <b>Reenviar</b> e cole o link. Ela volta para Aguardando aprovação.</> },
+      { v: <MArquivos />, t: <>Faça a mudança e anexe o <b>arquivo novo</b> (ou o link). Os arquivos anteriores aparecem na lista e você pode remover os que não valem mais.</> },
+      { v: <MCard tag="Sand" tg="tg3" titulo="Reboco sem trinca" prazo="refazer até sex 16/10" pc="pz-gold" botao="Reenviar" pri foco />, t: <>Clique em <b>Reenviar</b>. Ela volta para Aguardando aprovação.</> },
     ] },
   { id: "f6", titulo: "Calendários e desempenho", sub: "Seus clientes e sua pontualidade", min: 1,
     intro: "Além do quadro, você tem três telas de apoio.",
@@ -149,12 +161,12 @@ const DONO: Licao[] = [
       { v: <MCard titulo="Assistência técnica" prazo="arte até ter 13/10" />, t: <>O <b>prazo da arte</b> é calculado sozinho: 3 dias úteis antes do post, pulando feriados.</> },
     ], praticar: ["producao", "Abrir Produção"] },
   { id: "d3", titulo: "Aprovar ou pedir ajuste", sub: "O que fazer com cada entrega", min: 1,
-    intro: "Quando alguém entrega, a arte fica esperando você na Produção e no Painel.",
+    intro: "Quando alguém entrega, a arte aparece no topo da Produção, em Aguardando sua aprovação.",
     passos: [
-      { v: <MBotoes itens={["Aprovar", "Pedir ajuste"]} foco={0} />, t: <>Abra o link, confira e clique em <b>Aprovar</b>.</> },
+      { v: <MVer />, t: <>Clique na entrega para ver a <b>prévia</b> da imagem e do vídeo. Use <b>Baixar</b> em cada arquivo ou <b>Baixar os 2</b>. Se veio link, ele aparece embaixo.</> },
+      { v: <MBotoes itens={["Aprovar", "Pedir ajuste"]} foco={0} />, t: <>Tudo certo? Clique em <b>Aprovar</b>. Depois de publicar no Instagram, marque <b>Postado</b>.</> },
       { v: <MBotoes itens={["Aprovar", "Pedir ajuste"]} foco={1} />, t: <>Precisa mudar algo? <b>Pedir ajuste</b> devolve a arte para a coluna Ajustes de quem fez. Combine o que mudar pelo WhatsApp.</> },
-      { v: <MBotoes itens={["Postado", "Editar"]} foco={0} />, t: <>Depois de publicar no Instagram, marque <b>Postado</b>.</> },
-    ], praticar: ["producao", "Ver entregas"] },
+    ], dica: <>Para não lotar o espaço, os arquivos de posts já aprovados são apagados sozinhos no fim do mês (os de mais de 30 dias) ou quando o espaço está perto do limite, começando pelos mais antigos. O registro da entrega continua. Baixe o que quiser guardar.</>, praticar: ["producao", "Ver entregas"] },
   { id: "d4", titulo: "Editar o calendário", sub: "Mudar, mover e criar posts", min: 1,
     intro: "O calendário do site é o mesmo que a equipe vê. Editou, eles veem na hora.",
     passos: [
@@ -187,7 +199,8 @@ const DONO: Licao[] = [
 
 const FAQ_FUNC = [
   ["Qual é o meu prazo?", "O prazo da arte é 3 dias úteis antes do post ir ao ar. Fim de semana e feriado não contam."],
-  ["Entreguei o link errado. E agora?", "Se a arte ainda não foi aprovada, fale com o dono para devolver em ajuste, ou entregue de novo pelo cartão quando aparecer o botão."],
+  ["Enviei o arquivo errado. E agora?", "Antes de entregar, é só remover na lista. Depois de entregue, peça ao dono para devolver em ajuste e reenvie o certo."],
+  ["Meu vídeo não sobe.", "O limite é 50 MB por arquivo. Para vídeos maiores, salve no Drive e entregue pelo link."],
   ["Não aparece nenhuma arte para mim.", "Os posts do mês ainda não foram lançados ou o cliente não está com você. Fale com o dono."],
   ["Quem vê as minhas entregas?", "Você e os donos da Agemax. Os outros funcionários não veem o seu quadro."],
 ];
@@ -195,6 +208,7 @@ const FAQ_DONO = [
   ["O funcionário não vê os posts.", "Confira se os posts estão no nome dele (Produção ou Calendários › Editar). Trocar o responsável do cliente leva junto os posts em aberto."],
   ["Como dar acesso a alguém novo?", "Cadastre o e-mail em Equipe. A pessoa entra no site, clica em Primeiro acesso e cria a senha."],
   ["Posso apagar um post?", "Sim: Calendários › Editar ou Produção › Editar, e depois Excluir."],
+  ["Os arquivos ficam guardados para sempre?", "Não. Arquivos de posts aprovados são apagados sozinhos no fim do mês (os de mais de 30 dias) ou quando o espaço está perto do limite. Baixe o que quiser guardar."],
   ["Por que a pontualidade mudou?", "Ela conta as artes do mês entregues até o prazo. Atrasadas e sem link baixam o número."],
 ];
 
