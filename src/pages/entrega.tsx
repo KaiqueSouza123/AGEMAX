@@ -49,13 +49,13 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
   useEffect(() => { listarArquivos(i.id).then(a => setAntigos(a.filter(x => !x.removido_em))); }, [i.id]);
   const atualizar = (chave: string, p: Partial<Envio>) => setEnvios(l => l.map(e => e.chave === chave ? { ...e, ...p } : e));
 
-  const escolher = async (lista: FileList | null) => {
-    if (!lista?.length) return;
+  const escolher = async (lista: File[]) => {
+    if (!lista.length) return;
     setErr(null);
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) { setErr("Sua sessão expirou. Entre de novo."); return; }
-    for (const arq of Array.from(lista)) {
+    for (const arq of lista) {
       const chave = Math.random().toString(36).slice(2);
       const base: Envio = { chave, nome: arq.name, tamanho: arq.size, tipo: arq.type, p: 0 };
       if (!/^(image|video)\//.test(arq.type)) { setEnvios(l => [...l, { ...base, erro: "Só imagem ou vídeo." }]); continue; }
@@ -104,11 +104,11 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
 
       {modo === "arq" ? (
         <div className="ent-arq">
-          <input ref={galeria} type="file" accept="image/*,video/*" multiple hidden onChange={e => { escolher(e.target.files); e.target.value = ""; }} />
-          <input ref={camera} type="file" accept="image/*,video/*" capture="environment" hidden onChange={e => { escolher(e.target.files); e.target.value = ""; }} />
+          <input ref={galeria} type="file" accept="image/*,video/*" multiple className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => { const fs = Array.from(e.target.files || []); e.target.value = ""; escolher(fs); }} />
+          <input ref={camera} type="file" accept="image/*,video/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => { const fs = Array.from(e.target.files || []); e.target.value = ""; escolher(fs); }} />
           <button type="button" className={"ent-drop" + (arrastando ? " on" : "")} onClick={() => galeria.current?.click()}
             onDragOver={e => { e.preventDefault(); setArrastando(true); }} onDragLeave={() => setArrastando(false)}
-            onDrop={e => { e.preventDefault(); setArrastando(false); escolher(e.dataTransfer.files); }}>
+            onDrop={e => { e.preventDefault(); setArrastando(false); escolher(Array.from(e.dataTransfer.files || [])); }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
             <b>Arraste aqui ou clique para escolher</b>
             <small>Imagens e vídeos · até 50 MB cada</small>
