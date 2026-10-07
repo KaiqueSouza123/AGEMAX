@@ -11,16 +11,19 @@ import Calendarios from "./pages/Calendarios";
 import Clientes from "./pages/Clientes";
 import Equipe from "./pages/Equipe";
 import WhatsApp from "./pages/WhatsApp";
+import Aprenda from "./pages/Aprenda";
+import BoasVindas from "./pages/BoasVindas";
+import { EVENTO_APRENDA, licoesVistas, viuBoasVindas } from "./aprenda-progresso";
 
 export type Dados = {
   me: Pessoa; pessoas: Pessoa[]; clientes: Cliente[]; itens: Item[];
   mes: string; setMes: (m: string) => void; recarregar: () => Promise<void>;
-  aviso: (t: string) => void; ehDono: boolean;
+  aviso: (t: string) => void; ehDono: boolean; ir: (v: string) => void;
   pessoa: (id: string | null) => Pessoa | undefined; cliente: (id: string) => Cliente | undefined;
 };
 
-const VIEWS_DONO = [["painel", "Painel"], ["producao", "Produção"], ["calendarios", "Calendários"], ["clientes", "Clientes"], ["equipe", "Equipe"], ["whatsapp", "WhatsApp"]];
-const VIEWS_FUNC = [["minhas", "Minhas demandas"], ["calendarios", "Calendários"], ["desempenho", "Meu desempenho"], ["whatsapp", "Meus avisos"]];
+const VIEWS_DONO = [["painel", "Painel"], ["producao", "Produção"], ["calendarios", "Calendários"], ["clientes", "Clientes"], ["equipe", "Equipe"], ["whatsapp", "WhatsApp"], ["aprenda", "Aprenda"]];
+const VIEWS_FUNC = [["minhas", "Minhas demandas"], ["calendarios", "Calendários"], ["desempenho", "Meu desempenho"], ["whatsapp", "Meus avisos"], ["aprenda", "Aprenda"]];
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -74,8 +77,18 @@ export default function App() {
   const atual = views.some(v => v[0] === view) ? view : views[0][0];
   const ir = (v: string) => { setView(v); history.replaceState(null, "", "#" + v); window.scrollTo(0, 0); };
 
+  // aba Aprenda: selo NOVO até a primeira lição e boas-vindas no primeiro acesso
+  const [nVistas, setNVistas] = useState(0);
+  const [bv, setBv] = useState(false);
+  useEffect(() => {
+    if (!me) return;
+    const at = () => setNVistas(licoesVistas(me.id).length);
+    at(); setBv(!viuBoasVindas(me.id));
+    window.addEventListener(EVENTO_APRENDA, at); return () => window.removeEventListener(EVENTO_APRENDA, at);
+  }, [me?.id]);
+
   const dados: Dados | null = useMemo(() => me && ({
-    me, pessoas, clientes, itens, mes, setMes, recarregar, aviso, ehDono,
+    me, pessoas, clientes, itens, mes, setMes, recarregar, aviso, ehDono, ir,
     pessoa: (id) => pessoas.find(p => p.id === id), cliente: (id) => clientes.find(c => c.id === id),
   }), [me, pessoas, clientes, itens, mes, recarregar, ehDono]);
 
@@ -96,7 +109,7 @@ export default function App() {
     ? itens.filter(i => ["ATRASADO", "SEM LINK"].includes(alerta(i))).length
     : itens.filter(i => i.responsavel_id === me.id && ["ATRASADO", "SEM LINK", "VENCE HOJE", "AJUSTES"].includes(alerta(i))).length;
 
-  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp }[atual];
+  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda }[atual];
 
   return (
     <div className="app">
@@ -106,6 +119,7 @@ export default function App() {
           {views.map(([k, l]) => (
             <button type="button" key={k} id={`nav-${k}`} aria-current={atual === k ? "page" : undefined} onClick={() => ir(k)}>
               {l}{(k === "producao" || k === "minhas") && nPend > 0 && <span className="badge">{nPend}</span>}
+              {k === "aprenda" && nVistas === 0 && <span className="badge novo">NOVO</span>}
             </button>
           ))}
         </nav>
@@ -119,6 +133,7 @@ export default function App() {
         <Pagina d={dados} />
       </main>
       {toast && <div className="toast" role="status">{toast}</div>}
+      <BoasVindas aberto={bv} d={dados} fechar={() => setBv(false)} />
     </div>
   );
 }
