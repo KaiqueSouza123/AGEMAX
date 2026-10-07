@@ -320,3 +320,53 @@ dialog:has(.bv){width:min(540px,92vw);padding:30px}
 .bv .bv-ic{background:currentColor !important;width:12px;height:12px;border-radius:99px}
 .mv-kpis span{overflow-wrap:anywhere;font-size:10.5px}
 .mv-card .ktag{max-width:55%}
+/* Radar da Semana (beta) */
+.beta{display:inline-block;font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:99px;border:1px solid var(--info);color:var(--info);vertical-align:middle;line-height:1.3}
+.beta.grande{font-size:12px;padding:3px 9px;vertical-align:.45em;font-style:normal}
+.nav .beta{margin-left:auto;border-color:currentColor;color:var(--side-mute)}
+.nav button[aria-current="page"] .beta{color:#0B0B0B}
+.titulo-beta{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
+.beta-aviso{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:12px;background:var(--info-soft);font-size:14.5px;line-height:1.45}
+.beta-aviso .beta{flex-shrink:0;margin-top:2px}
+.rd-alta{display:grid;gap:10px}
+.rd-alta h2{margin:0;font-family:var(--display);font-size:17px}
+.rd-alta>div{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.rd-alta-c{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:3px}
+.rd-alta-c span{font:700 11px var(--mono);letter-spacing:.06em;color:var(--gold-ink);text-transform:uppercase}
+.rd-alta-c small{font-size:13px;color:var(--mute)}
+.rd{display:flex;gap:22px;align-items:flex-start}
+.rd-main{flex:1;min-width:0;display:grid;gap:22px}
+.rd-cli{display:grid;gap:10px}
+.rd-cli h2{margin:0;display:flex;gap:10px;align-items:center;font-size:14px}
+.rd-cli h2 .ktag{font-size:13px;max-width:none}
+.rd-cli h2 small{font-weight:500;color:var(--mute)}
+.rd-ideia{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:8px}
+.rd-ideia.usada{border-color:color-mix(in srgb,var(--ok) 50%,var(--line))}
+.rd-ideia.desc{opacity:.55}
+.rd-ideia h3{margin:0;font-family:var(--display);font-size:18px;line-height:1.25}
+.rd-ideia p{margin:0;font-size:14px;color:var(--mute);line-height:1.45}
+.rd-ideia p b{color:var(--fg)}
+.rd-gancho{padding:8px 10px;border-radius:8px;background:var(--surface2)}
+.rd-gancho b{color:var(--gold-ink) !important}
+.rd-fmt{font:700 11px var(--mono);letter-spacing:.06em;padding:3px 8px;border-radius:99px;background:var(--surface2);color:var(--mute)}
+.rd-ok{font:700 11px var(--mono);color:var(--ok)}
+.rd-guard{font:700 11px var(--mono);color:var(--info)}
+.rd-acts{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.rd-acts .btn{min-height:38px}
+.rd-side{width:300px;flex-shrink:0;display:grid;gap:12px}
+.rd-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:10px;align-content:start}
+.rd-box h2{margin:0;font-family:var(--display);font-size:16px}
+.rd-slot{display:grid;gap:2px;padding:10px 12px;border-radius:10px;border:1px dashed color-mix(in srgb,var(--gold) 60%,var(--line))}
+.rd-slot.cheio{border:0;background:var(--ok-soft)}
+.rd-slot small{font-size:12px;color:var(--mute)}
+.rd-slot b{font-size:14px}
+.rd-como{display:grid;gap:4px}
+.rd-opc{display:grid;gap:8px;max-height:50vh;overflow:auto}
+.rd-opc button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);font-size:14px}
+.rd-opc button:hover,.rd-opc button:focus-visible{border-color:var(--gold);outline:none}
+.rd-opc small{font:700 10px var(--mono);color:var(--gold-ink);text-transform:uppercase}
+.rd-tab{flex:1;min-width:0;padding:0;overflow:hidden}
+.rd-tab>h2{margin:0;padding:16px;font-family:var(--display);font-size:17px}
+.rd-rev{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--surface2)}
+.rd-rev small{font-size:13px;color:var(--mute)}
+@media (max-width:1000px){.rd{flex-direction:column}.rd-side{width:100%}}

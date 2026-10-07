@@ -68,9 +68,18 @@ const MMsg = () => (
   <div className="mv-msg">Bom dia, Douglas! Suas demandas de hoje:<br />🟠 <b>Adricom</b> · prazo é hoje<br />🟡 <b>Sand</b> · prazo qui 08/10</div>
 );
 
+const MIdeia = ({ usada, foco }: { usada?: boolean; foco?: boolean }) => (
+  <div className="mv-card">
+    <div className="mv-row"><span className="rd-fmt">REELS</span>{usada ? <span className="rd-ok">✓ NO POST DE 26/10</span> : <span className="beta">beta</span>}</div>
+    <b>O notebook do Dia das Crianças</b>
+    <span className="mv-mute">Gancho: “Antes de dar o notebook pro seu filho…”</span>
+    {!usada && <span className={"mv-btn pri" + (foco ? " foco" : "")}>Usar no post de 26/10</span>}
+  </div>
+);
+
 /* ---------- conteúdo ---------- */
 type Passo = { v: React.ReactNode; t: React.ReactNode };
-type Licao = { id: string; titulo: string; sub: string; min: number; intro: string; passos: Passo[]; dica?: React.ReactNode; praticar?: [string, string] };
+type Licao = { id: string; beta?: boolean; titulo: string; sub: string; min: number; intro: string; passos: Passo[]; dica?: React.ReactNode; praticar?: [string, string] };
 
 const FUNC: Licao[] = [
   { id: "f1", titulo: "O que é a plataforma", sub: "Pra que serve e quem vê o quê", min: 1,
@@ -115,6 +124,13 @@ const FUNC: Licao[] = [
       { v: <MKpis />, t: <><b>Meu desempenho</b>: quantas artes você entregou no prazo no mês.</> },
       { v: <MMsg />, t: <><b>Meus avisos</b>: o resumo do dia, igual ao que chega no WhatsApp.</> },
     ], praticar: ["calendarios", "Abrir Calendários"] },
+  { id: "f7", beta: true, titulo: "Radar da Semana", sub: "Ideias de posts para seus clientes", min: 1,
+    intro: "Toda semana o dono publica ideias de posts pensadas para cada cliente seu. Esta parte está em fase beta: pode mudar e as ideias podem ter erros.",
+    passos: [
+      { v: <MNav itens={["Minhas demandas", "Radar da Semana  beta", "Calendários"]} ativo={1} badge={1} />, t: <>O número no menu mostra quantas <b>ideias novas</b> chegaram para você.</> },
+      { v: <MIdeia foco />, t: <>Cada ideia traz o formato, por que funciona e um gancho. Clique em <b>Usar no post</b> e ela vira o tema do post “Trend da semana”, com o briefing junto.</> },
+      { v: <MIdeia usada />, t: <>Não serviu? Use <b>Guardar</b> para depois ou <b>Não serve</b>. O post com a ideia aparece no seu quadro com o prazo de sempre.</> },
+    ], dica: <>Por ser <b>beta</b>, as ideias são geradas por IA: confira datas e fatos antes de produzir e avise o dono se algo estiver estranho.</>, praticar: ["radar", "Abrir o Radar"] },
 ];
 
 const DONO: Licao[] = [
@@ -160,6 +176,13 @@ const DONO: Licao[] = [
       { v: <MKpis />, t: <>Também tem um resumo da equipe para os donos.</> },
       { v: <MNav itens={["Copiar", "Abrir WhatsApp"]} ativo={0} />, t: <>Por enquanto você copia e manda. O envio automático vem na próxima etapa.</> },
     ], praticar: ["whatsapp", "Abrir WhatsApp"] },
+  { id: "d7", beta: true, titulo: "Radar da Semana", sub: "Gerar, revisar e publicar ideias", min: 1,
+    intro: "O radar entrega ideias de posts por cliente para quem produz. Está em fase beta: use, revise com atenção e conte o que funcionou.",
+    passos: [
+      { v: <MMsg />, t: <>Toda semana, peça ao Claude <b>“faz o radar da semana”</b>. Ele pesquisa datas e trends, cria ideias por cliente e coloca aqui como <b>rascunho</b>.</> },
+      { v: <MForm campos={["Formato", "Ideia", "Por que funciona", "Gancho"]} foco={1} />, t: <>Em <b>Radar da Semana</b>, revise cliente por cliente: edite, remova ou adicione ideias suas.</> },
+      { v: <MBotoes itens={["Publicar para a equipe", "Voltar para rascunho"]} foco={0} />, t: <>Clique em <b>Publicar</b>. Cada funcionário vê só as dos clientes dele e você acompanha quem viu e quem usou.</> },
+    ], dica: <>Fase <b>beta</b>: as ideias são geradas por IA a partir da internet. Confira datas e fatos antes de publicar.</>, praticar: ["radar", "Abrir o Radar"] },
 ];
 
 const FAQ_FUNC = [
@@ -206,7 +229,7 @@ export default function Aprenda({ d }: { d: Dados }) {
               <li key={x.id}>
                 <button type="button" aria-current={k === idx ? "step" : undefined} className={ok ? "ok" : ""} onClick={() => setIdx(k)}>
                   <span className="ap-num" aria-hidden="true">{ok ? "✓" : k + 1}</span>
-                  <span><b>{x.titulo}</b><small>{x.sub}</small></span>
+                  <span><b>{x.titulo}{x.beta && <> <span className="beta">beta</span></>}</b><small>{x.sub}</small></span>
                   {ok && <span className="sr-only">(vista)</span>}
                 </button>
               </li>
@@ -217,7 +240,7 @@ export default function Aprenda({ d }: { d: Dados }) {
         <article className="ap-licao" aria-labelledby="ap-t">
           <div>
             <div className="ap-eb">LIÇÃO {idx + 1} · {l.min} MINUTO{l.min > 1 ? "S" : ""}</div>
-            <h2 id="ap-t">{l.titulo}</h2>
+            <h2 id="ap-t">{l.titulo}{l.beta && <> <span className="beta grande">beta</span></>}</h2>
             <p>{l.intro}</p>
           </div>
           <div className="ap-passos">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { Cliente, Item, Pessoa, alerta, hojeSP, iso, setFeriados, fmtw } from "./regras";
+import { Cliente, Item, Pessoa, RadarIdeia, RadarSemana, alerta, hojeSP, iso, setFeriados, fmtw } from "./regras";
 import Login, { NovaSenha } from "./pages/Login";
 import Painel from "./pages/Painel";
 import Producao from "./pages/Producao";
@@ -12,18 +12,20 @@ import Clientes from "./pages/Clientes";
 import Equipe from "./pages/Equipe";
 import WhatsApp from "./pages/WhatsApp";
 import Aprenda from "./pages/Aprenda";
+import Radar from "./pages/Radar";
 import BoasVindas from "./pages/BoasVindas";
 import { EVENTO_APRENDA, licoesVistas, viuBoasVindas } from "./aprenda-progresso";
 
 export type Dados = {
   me: Pessoa; pessoas: Pessoa[]; clientes: Cliente[]; itens: Item[];
+  semanas: RadarSemana[]; ideias: RadarIdeia[];
   mes: string; setMes: (m: string) => void; recarregar: () => Promise<void>;
   aviso: (t: string) => void; ehDono: boolean; ir: (v: string) => void;
   pessoa: (id: string | null) => Pessoa | undefined; cliente: (id: string) => Cliente | undefined;
 };
 
-const VIEWS_DONO = [["painel", "Painel"], ["producao", "Produção"], ["calendarios", "Calendários"], ["clientes", "Clientes"], ["equipe", "Equipe"], ["whatsapp", "WhatsApp"], ["aprenda", "Aprenda"]];
-const VIEWS_FUNC = [["minhas", "Minhas demandas"], ["calendarios", "Calendários"], ["desempenho", "Meu desempenho"], ["whatsapp", "Meus avisos"], ["aprenda", "Aprenda"]];
+const VIEWS_DONO = [["painel", "Painel"], ["producao", "Produção"], ["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["clientes", "Clientes"], ["equipe", "Equipe"], ["whatsapp", "WhatsApp"], ["aprenda", "Aprenda"]];
+const VIEWS_FUNC = [["minhas", "Minhas demandas"], ["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["desempenho", "Meu desempenho"], ["whatsapp", "Meus avisos"], ["aprenda", "Aprenda"]];
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -32,6 +34,8 @@ export default function App() {
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [itens, setItens] = useState<Item[]>([]);
+  const [semanas, setSemanas] = useState<RadarSemana[]>([]);
+  const [ideias, setIdeias] = useState<RadarIdeia[]>([]);
   const [mes, setMes] = useState(iso(hojeSP()).slice(0, 7));
   const [view, setView] = useState<string>(() => location.hash.replace("#", "") || "");
   const [toast, setToast] = useState<string | null>(null);
@@ -45,12 +49,15 @@ export default function App() {
 
   const recarregar = useCallback(async () => {
     if (!session) return;
-    const [p, c, f, i] = await Promise.all([
+    const [p, c, f, i, rs, ri] = await Promise.all([
       supabase.from("pessoas").select("*").order("nome"),
       supabase.from("clientes").select("*").order("nome"),
       supabase.from("feriados").select("data"),
       supabase.from("itens").select("*").order("data_post"),
+      supabase.from("radar_semanas").select("*").order("inicio", { ascending: false }),
+      supabase.from("radar_ideias").select("*").order("criado_em"),
     ]);
+    setSemanas((rs.data || []) as RadarSemana[]); setIdeias((ri.data || []) as RadarIdeia[]);
     setFeriados((f.data || []).map((x: any) => x.data));
     const lista = (p.data || []) as Pessoa[];
     const eu = lista.find(x => x.user_id === session.user.id) || null;
@@ -63,7 +70,8 @@ export default function App() {
   // atualiza sozinho quando alguém muda a produção
   useEffect(() => {
     if (!session) return;
-    const ch = supabase.channel("itens").on("postgres_changes", { event: "*", schema: "public", table: "itens" }, () => recarregar()).subscribe();
+    const ch = supabase.channel("itens").on("postgres_changes", { event: "*", schema: "public", table: "itens" }, () => recarregar())
+      .on("postgres_changes", { event: "*", schema: "public", table: "radar_semanas" }, () => recarregar()).subscribe();
     // reforço: ao voltar para a aba e a cada 60s (cobre post trocado de responsável ou excluído)
     const volta = () => { if (document.visibilityState === "visible") recarregar(); };
     document.addEventListener("visibilitychange", volta);
@@ -88,9 +96,9 @@ export default function App() {
   }, [me?.id]);
 
   const dados: Dados | null = useMemo(() => me && ({
-    me, pessoas, clientes, itens, mes, setMes, recarregar, aviso, ehDono, ir,
+    me, pessoas, clientes, itens, semanas, ideias, mes, setMes, recarregar, aviso, ehDono, ir,
     pessoa: (id) => pessoas.find(p => p.id === id), cliente: (id) => clientes.find(c => c.id === id),
-  }), [me, pessoas, clientes, itens, mes, recarregar, ehDono]);
+  }), [me, pessoas, clientes, itens, semanas, ideias, mes, recarregar, ehDono]);
 
   if (session === undefined) return <div className="loading">Carregando</div>;
   if (!session) return <Login />;
@@ -109,7 +117,11 @@ export default function App() {
     ? itens.filter(i => ["ATRASADO", "SEM LINK"].includes(alerta(i))).length
     : itens.filter(i => i.responsavel_id === me.id && ["ATRASADO", "SEM LINK", "VENCE HOJE", "AJUSTES"].includes(alerta(i))).length;
 
-  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda }[atual];
+  // ideias novas do radar publicado mais recente (para o funcionário)
+  const ultimo = semanas.find(s => s.publicado_em);
+  const nRadar = ehDono || !ultimo ? 0 : ideias.filter(x => x.semana_id === ultimo.id && !x.visto_em && x.estado === "nova").length;
+
+  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda, radar: Radar }[atual];
 
   return (
     <div className="app">
@@ -120,6 +132,7 @@ export default function App() {
             <button type="button" key={k} id={`nav-${k}`} aria-current={atual === k ? "page" : undefined} onClick={() => ir(k)}>
               {l}{(k === "producao" || k === "minhas") && nPend > 0 && <span className="badge">{nPend}</span>}
               {k === "aprenda" && nVistas === 0 && <span className="badge novo">NOVO</span>}
+              {k === "radar" && (nRadar > 0 ? <span className="badge novo">{nRadar}</span> : <span className="beta">beta</span>)}
             </button>
           ))}
         </nav>

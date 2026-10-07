@@ -14,6 +14,13 @@ export type Item = {
   briefing: string | null; objetivo: string | null;
 };
 
+export type RadarSemana = { id: string; inicio: string; em_alta: { tipo: string; nome: string; sub?: string }[]; publicado_em: string | null };
+export type RadarIdeia = {
+  id: string; semana_id: string; cliente_id: string; formato: string; titulo: string; porque: string | null; gancho: string | null;
+  estado: "nova" | "guardada" | "descartada" | "usada"; item_id: number | null; visto_em: string | null;
+};
+export const ehTrend = (i: Item) => /^trend da semana/i.test(i.tema);
+
 export const STATUS = ["A fazer", "Em produção", "Entregue", "Ajustes", "Aprovado", "Postado"];
 export const TIPOS = ["Estático", "Carrossel", "Reels", "Stories", "Vídeo", "Prazo do cliente"];
 const ENTREGUE = new Set(["Entregue", "Aprovado", "Postado"]);
