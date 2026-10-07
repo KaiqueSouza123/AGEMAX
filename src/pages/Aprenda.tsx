@@ -159,9 +159,10 @@ const DONO: Licao[] = [
       { v: <MForm campos={["Cliente", "Tema do post", "Data do post", "Responsável"]} foco={0} />, t: <>Em <b>Produção</b>, clique em <b>+ Novo post</b>. Ao escolher o cliente, o responsável dele já vem preenchido.</> },
       { v: <MCal />, t: <>Ou em <b>Calendários › Editar</b>, clique em <b>+ post</b> no dia certo.</> },
       { v: <MCard titulo="Assistência técnica" prazo="arte até ter 13/10" />, t: <>O <b>prazo da arte</b> é calculado sozinho: 3 dias úteis antes do post, pulando feriados.</> },
+      { v: <MKpis />, t: <>Na <b>Produção</b>, os posts vêm agrupados pelo prazo da arte: atrasados primeiro, depois o que vence antes. Os números do topo também filtram a lista. Dá para agrupar por pessoa ou por cliente.</> },
     ], praticar: ["producao", "Abrir Produção"] },
   { id: "d3", titulo: "Aprovar ou pedir ajuste", sub: "O que fazer com cada entrega", min: 1,
-    intro: "Quando alguém entrega, a arte aparece no topo da Produção, em Aguardando sua aprovação.",
+    intro: "Quando alguém entrega, a arte aparece no topo da Produção, no cartão Precisa de você. Clique em Revisar ou no nome do post.",
     passos: [
       { v: <MVer />, t: <>Clique na entrega para ver a <b>prévia</b> da imagem e do vídeo. Use <b>Baixar</b> em cada arquivo ou <b>Baixar os 2</b>. Se veio link, ele aparece embaixo.</> },
       { v: <MBotoes itens={["Aprovar", "Pedir ajuste"]} foco={0} />, t: <>Tudo certo? Clique em <b>Aprovar</b>. Depois de publicar no Instagram, marque <b>Postado</b>.</> },
