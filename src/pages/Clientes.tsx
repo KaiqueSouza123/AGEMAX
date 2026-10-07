@@ -37,19 +37,67 @@ export default function Clientes({ d }: { d: Dados }) {
   );
 }
 
+// Reduz a imagem para no máximo 800px (mantendo a transparência do PNG) antes de enviar
+async function prepararLogo(arq: File): Promise<Blob> {
+  const url = URL.createObjectURL(arq);
+  try {
+    const img = await new Promise<HTMLImageElement>((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = url; });
+    const esc = Math.min(1, 800 / Math.max(img.width, img.height));
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(img.width * esc); cv.height = Math.round(img.height * esc);
+    cv.getContext("2d")!.drawImage(img, 0, 0, cv.width, cv.height);
+    return await new Promise<Blob>((ok, erro) => cv.toBlob(b => b ? ok(b) : erro(new Error("Não consegui ler a imagem.")), "image/png"));
+  } finally { URL.revokeObjectURL(url); }
+}
+
 function ClienteForm({ d, c, fechar }: { d: Dados; c: Partial<Cliente> | null; fechar: () => void }) {
   const [f, setF] = useState<Partial<Cliente>>(c || {});
-  const { busy, err, run } = useBusy();
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<string | null>(c?.logo || null);
+  const [tirarLogo, setTirarLogo] = useState(false);
+  const { busy, err, setErr, run } = useBusy();
   const set = (k: keyof Cliente, v: any) => setF(x => ({ ...x, [k]: v }));
+
+  const escolher = (arq: File | undefined) => {
+    setErr(null);
+    if (!arq) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(arq.type)) { setErr("Envie a logo em PNG, JPG ou WEBP. PNG com fundo transparente fica melhor."); return; }
+    if (arq.size > 5 * 1024 * 1024) { setErr("A imagem passa de 5 MB. Exporte numa resolução menor."); return; }
+    setArquivo(arq); setTirarLogo(false); setPrevia(URL.createObjectURL(arq));
+  };
+
   const salvar = async (e: FormEvent) => {
     e.preventDefault();
     const dados: any = { nome: f.nome, instagram: f.instagram || null, nicho: f.nicho || null, segmento: f.segmento || null, cidade: f.cidade || null, regra: f.regra || null, responsavel_id: f.responsavel_id || null, ativo: f.ativo !== false };
-    const ok = await run(() => (c?.id ? supabase.from("clientes").update(dados).eq("id", c.id) : supabase.from("clientes").insert(dados)) as any);
-    if (ok) { fechar(); d.aviso("Cliente salvo"); d.recarregar(); }
+    if (tirarLogo) dados.logo = null;
+    const ok = await run(async () => {
+      const r = c?.id
+        ? await supabase.from("clientes").update(dados).eq("id", c.id).select("id").single()
+        : await supabase.from("clientes").insert(dados).select("id").single();
+      if (r.error || !arquivo) return r;
+      const id = (r.data as any).id;
+      const caminho = `${id}-${Date.now()}.png`;
+      const up = await supabase.storage.from("logos").upload(caminho, await prepararLogo(arquivo), { contentType: "image/png", upsert: true });
+      if (up.error) return up;
+      const pub = supabase.storage.from("logos").getPublicUrl(caminho).data.publicUrl;
+      return await supabase.from("clientes").update({ logo: pub }).eq("id", id);
+    });
+    if (ok) { fechar(); d.aviso(arquivo ? "Cliente e logo salvos" : "Cliente salvo"); d.recarregar(); }
   };
   return (
     <form className="form" onSubmit={salvar}>
       <h2>{c?.id ? "Editar cliente" : "Novo cliente"}</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 14, alignItems: "center" }}>
+        <div className="ccard" style={{ padding: 0, border: 0 }}>
+          <div className="lg">{previa && !tirarLogo ? <img src={previa} alt="Prévia da logo" /> : <span style={{ fontSize: 13 }}>sem logo</span>}</div>
+        </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <label htmlFor="cl-logo" style={{ margin: 0 }}>Logo (PNG com fundo transparente)
+            <input id="cl-logo" type="file" accept="image/png,image/jpeg,image/webp" onChange={e => escolher(e.target.files?.[0])} />
+          </label>
+          {(previa && !tirarLogo) && <button type="button" className="btn sm danger" style={{ justifySelf: "start" }} onClick={() => { setTirarLogo(true); setArquivo(null); }}>Remover logo</button>}
+        </div>
+      </div>
       <label htmlFor="cl-nome">Nome<input id="cl-nome" required value={f.nome || ""} onChange={e => set("nome", e.target.value)} /></label>
       <div className="row2">
         <label htmlFor="cl-resp">Responsável<select id="cl-resp" value={f.responsavel_id || ""} onChange={e => set("responsavel_id", e.target.value)}>
