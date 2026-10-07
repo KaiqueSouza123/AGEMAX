@@ -36,8 +36,10 @@ export default function Login() {
     if (modo === "entrar") {
       await run(() => supabase.auth.signInWithPassword({ email, password: senha }));
     } else if (modo === "criar") {
-      const ok = await run(() => supabase.auth.signUp({ email, password: senha, options: { emailRedirectTo: volta } }));
-      if (ok) setMsg("Acesso criado. Abra o e-mail que enviamos e clique no link para confirmar.");
+      let entrou = false;
+      const ok = await run(async () => { const r = await supabase.auth.signUp({ email, password: senha, options: { emailRedirectTo: volta } }); entrou = !!r.data?.session; return r; });
+      // sem confirmação por e-mail a pessoa já entra direto; com confirmação, avisa para abrir o e-mail
+      if (ok && !entrou) setMsg("Acesso criado. Abra o e-mail que enviamos e clique no link para confirmar.");
     } else {
       const ok = await run(() => supabase.auth.resetPasswordForEmail(email, { redirectTo: volta }));
       if (ok) setMsg("Se este e-mail tem acesso, enviamos um link para criar uma nova senha.");
