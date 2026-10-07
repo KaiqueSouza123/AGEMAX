@@ -74,8 +74,18 @@ function ClienteForm({ d, c, fechar }: { d: Dados; c: Partial<Cliente> | null; f
       const r = c?.id
         ? await supabase.from("clientes").update(dados).eq("id", c.id).select("id").single()
         : await supabase.from("clientes").insert(dados).select("id").single();
-      if (r.error || !arquivo) return r;
+      if (r.error) return r;
       const id = (r.data as any).id;
+      // trocou o responsável: os posts ainda não entregues vão junto para a pessoa nova
+      const antigo = c?.responsavel_id || null;
+      if (c?.id && antigo !== dados.responsavel_id) {
+        let q = supabase.from("itens").update({ responsavel_id: dados.responsavel_id })
+          .eq("cliente_id", id).neq("tipo", "Prazo do cliente").in("status", ["A fazer", "Em produção", "Ajustes"]);
+        q = antigo ? q.or(`responsavel_id.is.null,responsavel_id.eq.${antigo}`) : q.is("responsavel_id", null);
+        const mv = await q;
+        if (mv.error) return mv;
+      }
+      if (!arquivo) return r;
       const caminho = `${id}-${Date.now()}.png`;
       const up = await supabase.storage.from("logos").upload(caminho, await prepararLogo(arquivo), { contentType: "image/png", upsert: true });
       if (up.error) return up;
