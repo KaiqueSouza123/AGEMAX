@@ -24,8 +24,34 @@ export type Dados = {
   pessoa: (id: string | null) => Pessoa | undefined; cliente: (id: string) => Cliente | undefined;
 };
 
-const VIEWS_DONO = [["painel", "Painel"], ["producao", "Produção"], ["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["clientes", "Clientes"], ["equipe", "Equipe"], ["whatsapp", "WhatsApp"], ["aprenda", "Aprenda"]];
-const VIEWS_FUNC = [["minhas", "Minhas demandas"], ["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["desempenho", "Meu desempenho"], ["whatsapp", "Meus avisos"], ["aprenda", "Aprenda"]];
+type Grupo = [string, [string, string][]];
+const GRUPOS_DONO: Grupo[] = [
+  ["Visão geral", [["painel", "Painel"], ["producao", "Produção"]]],
+  ["Conteúdo", [["radar", "Radar da Semana"], ["calendarios", "Calendários"]]],
+  ["Clientes e equipe", [["clientes", "Clientes"], ["equipe", "Equipe"]]],
+  ["Cobrança", [["whatsapp", "WhatsApp"]]],
+  ["Ajuda", [["aprenda", "Aprenda"]]],
+];
+const GRUPOS_FUNC: Grupo[] = [
+  ["Trabalho", [["minhas", "Minhas demandas"], ["radar", "Radar da Semana"], ["calendarios", "Calendários"]]],
+  ["Meu mês", [["desempenho", "Meu desempenho"], ["whatsapp", "Meus avisos"]]],
+  ["Ajuda", [["aprenda", "Aprenda"]]],
+];
+const ICONES: Record<string, string> = {
+  painel: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  producao: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
+  minhas: "M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v6h-4z",
+  radar: "M12 4a8 8 0 1 0 8 8M12 8a4 4 0 1 0 4 4M12 12l7-7",
+  calendarios: "M4 6h16v14H4zM4 10h16M9 3v4M15 3v4",
+  clientes: "M9 11a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M17 3a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3",
+  equipe: "M12 11a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM5 21a7 7 0 0 1 14 0",
+  whatsapp: "M4 5h16v11H8l-4 4z",
+  desempenho: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+  aprenda: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 5v16",
+};
+const Icone = ({ k }: { k: string }) => <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={ICONES[k] || ICONES.painel} /></svg>;
+const VIEWS_DONO = GRUPOS_DONO.flatMap(g => g[1]);
+const VIEWS_FUNC = GRUPOS_FUNC.flatMap(g => g[1]);
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -39,6 +65,15 @@ export default function App() {
   const [mes, setMes] = useState(iso(hojeSP()).slice(0, 7));
   const [view, setView] = useState<string>(() => location.hash.replace("#", "") || "");
   const [toast, setToast] = useState<string | null>(null);
+  const [menu, setMenu] = useState(false);
+  // menu do celular: fecha com Esc e trava a rolagem da página enquanto aberto
+  useEffect(() => {
+    if (!menu) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
+    document.addEventListener("keydown", esc);
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", esc); document.body.style.overflow = ""; };
+  }, [menu]);
 
   const [recuperando, setRecuperando] = useState(false);
   useEffect(() => {
@@ -83,7 +118,7 @@ export default function App() {
   const ehDono = me?.papel === "dono";
   const views = ehDono ? VIEWS_DONO : VIEWS_FUNC;
   const atual = views.some(v => v[0] === view) ? view : views[0][0];
-  const ir = (v: string) => { setView(v); history.replaceState(null, "", "#" + v); window.scrollTo(0, 0); };
+  const ir = (v: string) => { setMenu(false); setView(v); history.replaceState(null, "", "#" + v); window.scrollTo(0, 0); };
 
   // aba Aprenda: selo NOVO até a primeira lição e boas-vindas no primeiro acesso
   const [nVistas, setNVistas] = useState(0);
@@ -125,19 +160,40 @@ export default function App() {
 
   return (
     <div className="app">
-      <aside className="side">
-        <img className="logo" src="/agemax-branca.png" alt="Agemax" />
+      <header className="mtop">
+        <button type="button" className="mtop-menu" aria-label="Abrir menu" aria-expanded={menu} aria-controls="menu-lateral" onClick={() => setMenu(true)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          {(nPend > 0 || nRadar > 0) && <span className="mtop-dot" aria-hidden="true" />}
+        </button>
+        <b className="mtop-t">{views.find(v => v[0] === atual)?.[1]}</b>
+        <img className="mtop-logo" src="/agemax-branca.png" alt="Agemax" />
+      </header>
+      {menu && <button type="button" className="side-fundo" aria-label="Fechar menu" onClick={() => setMenu(false)} />}
+      <aside className={"side" + (menu ? " aberto" : "")} id="menu-lateral">
+        <div className="side-head">
+          <img className="logo" src="/agemax-branca.png" alt="Agemax" />
+          <button type="button" className="side-x" aria-label="Fechar menu" onClick={() => setMenu(false)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
         <nav className="nav" aria-label="Seções">
-          {views.map(([k, l]) => (
-            <button type="button" key={k} id={`nav-${k}`} aria-current={atual === k ? "page" : undefined} onClick={() => ir(k)}>
-              {l}{(k === "producao" || k === "minhas") && nPend > 0 && <span className="badge">{nPend}</span>}
-              {k === "aprenda" && nVistas === 0 && <span className="badge novo">NOVO</span>}
-              {k === "radar" && (nRadar > 0 ? <span className="badge novo">{nRadar}</span> : <span className="beta">beta</span>)}
-            </button>
+          {(ehDono ? GRUPOS_DONO : GRUPOS_FUNC).map(([g, itens]) => (
+            <div className="nav-g" key={g}>
+              <span className="nav-gt">{g}</span>
+              {itens.map(([k, l]) => (
+                <button type="button" key={k} id={`nav-${k}`} aria-current={atual === k ? "page" : undefined} onClick={() => ir(k)}>
+                  <Icone k={k} /><span className="nav-l">{l}</span>
+                  {(k === "producao" || k === "minhas") && nPend > 0 && <span className="badge">{nPend}</span>}
+                  {k === "aprenda" && nVistas === 0 && <span className="badge novo">NOVO</span>}
+                  {k === "radar" && (nRadar > 0 ? <span className="badge novo">{nRadar}</span> : <span className="beta">beta</span>)}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="who">
-          <span>Conectado como<b>{me.nome} · {ehDono ? "Dono" : (me.funcao || "Funcionário")}</b></span>
+          <span className="who-av" aria-hidden="true">{me.nome.slice(0, 1).toUpperCase()}</span>
+          <span className="who-t">Conectado como<b>{me.nome} · {ehDono ? "Dono" : (me.funcao || "Funcionário")}</b></span>
           <button type="button" onClick={() => supabase.auth.signOut()}>Sair</button>
         </div>
       </aside>
