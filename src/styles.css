@@ -372,3 +372,44 @@ dialog:has(.bv){width:min(540px,92vw);padding:30px}
 @media (max-width:1000px){.rd{flex-direction:column}.rd-side{width:100%}}
 .rd-sel{width:100%;min-height:38px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--fg);padding:0 10px;font:600 14px var(--body)}
 .rd-box{min-width:0}
+/* Radar: lista da equipe (vira cartões no celular) */
+.rd-eq{display:grid;border-top:1px solid var(--line)}
+.rd-eq-row{display:grid;grid-template-columns:1.3fr repeat(4,minmax(0,1fr));gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--mute)}
+.rd-eq-row b{color:var(--fg);font-size:15px}
+.rd-eq-row strong{color:var(--fg);font-variant-numeric:tabular-nums}
+.rd-eq-row strong.ok{color:var(--ok)}
+.rd-tab .rd-alta{padding:14px 16px 16px}
+/* Radar no celular */
+@media (max-width:1000px){
+  .rd{align-items:stretch}
+  .rd-side,.rd-tab,.rd-main{width:100%;min-width:0}
+}
+@media (max-width:700px){
+  .beta-aviso{font-size:13.5px;padding:10px 12px;gap:10px}
+  .rd .kpis,.view .kpis{gap:10px}
+  .kpi{padding:12px 14px}
+  .kpi .n{font-size:30px}
+  .kpi .l{font-size:13px}
+  .rd-alta>div{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:8px;padding-bottom:4px;margin:0 -2px}
+  .rd-alta-c{flex:0 0 165px;scroll-snap-align:start;padding:10px 12px}
+  .rd-alta-c b{font-size:14px}
+  .rd-eq-row{grid-template-columns:repeat(4,auto);justify-content:start;column-gap:14px;row-gap:4px;padding:12px 14px;font-size:13.5px}
+  .rd-eq-row b{grid-column:1/-1}
+  .rd-tab>h2,.rd-box h2{font-size:16px}
+  .rd-ideia{padding:14px}
+  .rd-ideia h3{font-size:17px}
+  .rd-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;justify-items:stretch}
+  .rd-acts .btn.gold{grid-column:1/-1;order:-1;min-height:46px}
+  .rd-acts .btn{width:100%}
+  .rd-acts .linkbtn{justify-self:center;padding:8px 4px}
+  .rd-cli h2{flex-wrap:wrap}
+  .rd-rev{padding:10px}
+  .top .filters{width:100%}
+  .top .filters select,.top .filters .btn,.top>select{width:100%;min-height:44px}
+}
+.rd-eq-row strong.rd-n-ok{color:var(--ok)}
+@media (max-width:700px){
+  .ap-dica{flex-direction:column;gap:4px}
+  .rd-acts .btn.gold{order:-2}
+  .rd-acts .rd-outro{grid-column:1/-1;order:-1;padding:4px}
+}

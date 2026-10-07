@@ -122,7 +122,7 @@ function RadarFunc({ d }: { d: Dados }) {
                             : <button type="button" className="linkbtn" onClick={() => marcar(x, "descartada", "Ideia descartada")}>Não serve</button>}
                           {x.estado !== "descartada" && <button type="button" className="btn" onClick={() => marcar(x, x.estado === "guardada" ? "nova" : "guardada", x.estado === "guardada" ? "Tirada dos guardados" : "Ideia guardada")}>{x.estado === "guardada" ? "Tirar dos guardados" : "Guardar"}</button>}
                           {x.estado !== "descartada" && (alvo
-                            ? <><button type="button" className="linkbtn" onClick={() => setEscolher(x)}>outro post</button>
+                            ? <><button type="button" className="linkbtn rd-outro" onClick={() => setEscolher(x)}>usar em outro post</button>
                                 <button type="button" className="btn gold" onClick={() => usar(x, alvo)}>Usar no post de {fmt(dt(alvo.data_post))}</button></>
                             : <button type="button" className="btn gold" onClick={() => setEscolher(x)}>Usar num post</button>)}
                         </div>
@@ -249,15 +249,17 @@ function RadarDono({ d }: { d: Dados }) {
       <div className="rd">
         <section className="panel rd-tab" aria-labelledby="rd-eq">
           <h2 id="rd-eq">Quem recebe o quê</h2>
-          <div className="tablewrap" style={{ border: 0 }}>
-            <table>
-              <thead><tr><th>Funcionário</th><th>Clientes</th><th>Ideias</th><th>Viu</th><th>Usou</th></tr></thead>
-              <tbody>{linhas.map(l => (
-                <tr key={l.p.id}><td><b>{l.p.nome}</b></td><td>{l.clientes}</td><td>{l.ideias}</td>
-                  <td className="muted">{sem.publicado_em ? `${l.vistas} de ${l.ideias}` : "—"}</td>
-                  <td>{sem.publicado_em ? `${l.usadas} de ${l.ideias}` : "—"}</td></tr>
-              ))}</tbody>
-            </table>
+          <div className="rd-eq">
+            {linhas.length === 0 && <div className="kvazio">Nenhum funcionário com clientes.</div>}
+            {linhas.map(l => (
+              <div className="rd-eq-row" key={l.p.id}>
+                <b>{l.p.nome}</b>
+                <span><strong>{l.clientes}</strong> cliente{l.clientes === 1 ? "" : "s"}</span>
+                <span><strong>{l.ideias}</strong> ideias</span>
+                <span className="muted">viu <strong>{sem.publicado_em ? `${l.vistas}/${l.ideias}` : "—"}</strong></span>
+                <span>usou <strong className={l.usadas ? "rd-n-ok" : ""}>{sem.publicado_em ? `${l.usadas}/${l.ideias}` : "—"}</strong></span>
+              </div>
+            ))}
           </div>
           {sem.em_alta?.length > 0 && <div className="rd-alta" style={{ padding: "4px 16px 16px" }}><h2>Em alta</h2><div>{sem.em_alta.map((a, k) => <div key={k} className="rd-alta-c"><span>{a.tipo}</span><b>{a.nome}</b>{a.sub && <small>{a.sub}</small>}</div>)}</div></div>}
         </section>
