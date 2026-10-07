@@ -72,7 +72,7 @@ export function TabelaProducao({ d, its, comResp, onEditar }: { d: Dados; its: I
   );
 }
 
-function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () => void }) {
+export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () => void }) {
   const [link, setLink] = useState(i.link || "");
   const { busy, err, run } = useBusy();
   const enviar = async (e: FormEvent) => {
