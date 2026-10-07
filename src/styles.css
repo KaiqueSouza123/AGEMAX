@@ -182,3 +182,14 @@ body{margin:0}
 .loading{min-height:100vh;display:grid;place-items:center;background:var(--side);color:#BDBDB6;font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase}
 @media (max-width:600px){.form .row2{grid-template-columns:1fr}}
 .login,.app{min-height:100vh;min-height:100dvh}
+/* calendário em modo edição */
+.calgrid.editando{outline:2px dashed var(--gold);outline-offset:3px}
+.calgrid button.p{all:unset;box-sizing:border-box;display:block;font-size:12px;line-height:1.25;border-radius:6px;padding:4px 6px;background:var(--teal-soft);cursor:grab;text-align:left;width:100%}
+.calgrid button.p.pz{background:var(--gold-soft)}
+.calgrid button.p:hover{box-shadow:inset 0 0 0 1.5px var(--teal)}
+.calgrid button.p:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.calgrid .p small{display:block;font-size:10.5px;color:var(--mute);margin-top:2px}
+.calgrid .p.drag{opacity:.4}
+.calgrid .d.alvo{background:var(--gold-soft)}
+.calgrid .d .add{all:unset;margin-top:auto;font-size:11px;color:var(--mute);border:1px dashed var(--line);border-radius:6px;padding:2px 6px;text-align:center;cursor:pointer}
+.calgrid .d .add:hover,.calgrid .d .add:focus-visible{color:var(--teal);border-color:var(--teal)}

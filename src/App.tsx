@@ -61,7 +61,11 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     const ch = supabase.channel("itens").on("postgres_changes", { event: "*", schema: "public", table: "itens" }, () => recarregar()).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    // reforço: ao voltar para a aba e a cada 60s (cobre post trocado de responsável ou excluído)
+    const volta = () => { if (document.visibilityState === "visible") recarregar(); };
+    document.addEventListener("visibilitychange", volta);
+    const t = setInterval(volta, 60000);
+    return () => { supabase.removeChannel(ch); document.removeEventListener("visibilitychange", volta); clearInterval(t); };
   }, [session, recarregar]);
 
   const aviso = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2600); };
