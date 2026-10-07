@@ -370,3 +370,5 @@ dialog:has(.bv){width:min(540px,92vw);padding:30px}
 .rd-rev{display:grid;gap:4px;padding:10px 12px;border-radius:10px;background:var(--surface2)}
 .rd-rev small{font-size:13px;color:var(--mute)}
 @media (max-width:1000px){.rd{flex-direction:column}.rd-side{width:100%}}
+.rd-sel{width:100%;min-height:38px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--fg);padding:0 10px;font:600 14px var(--body)}
+.rd-box{min-width:0}

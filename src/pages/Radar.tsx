@@ -263,9 +263,8 @@ function RadarDono({ d }: { d: Dados }) {
         </section>
 
         <section className="rd-side rd-box" aria-labelledby="rd-rev">
-          <div className="mv-row"><h2 id="rd-rev">Revisar por cliente</h2>
-            <select aria-label="Cliente" value={cliSel} onChange={e => setCliSel(e.target.value)}>{ativos.map(c => <option key={c.id} value={c.id}>{c.nome} ({ideias.filter(x => x.cliente_id === c.id).length})</option>)}</select>
-          </div>
+          <h2 id="rd-rev">Revisar por cliente</h2>
+          <select className="rd-sel" aria-label="Cliente" value={cliSel} onChange={e => setCliSel(e.target.value)}>{ativos.map(c => <option key={c.id} value={c.id}>{c.nome} ({ideias.filter(x => x.cliente_id === c.id).length})</option>)}</select>
           {doCli.length === 0 && <div className="kvazio">Sem ideias para este cliente.</div>}
           {doCli.map(x => (
             <div key={x.id} className="rd-rev">
