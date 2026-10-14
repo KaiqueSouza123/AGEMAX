@@ -5,6 +5,7 @@ import { Item, temArte, alerta, ordenar, placar, noMes, hojeSP, iso, dt, fmt, fm
 import { Head, Modal, useBusy } from "../ui";
 import { EntregaForm, EntregaVer } from "./entrega";
 import { Renomear } from "./renomear";
+import { ItemForm } from "./tabela";
 
 type Col = { chave: string; nome: string; dica: string; cor: string; status: string[] };
 const COLUNAS: Col[] = [
@@ -35,6 +36,8 @@ export default function Minhas({ d }: { d: Dados }) {
   const [ver, setVer] = useState<Item | null>(null);
   const [renomear, setRenomear] = useState<Item | null>(null);
   const [aberto, setAberto] = useState<number | null>(null);
+  const [form, setForm] = useState<Partial<Item> | null>(null);
+  const meusClientes = d.clientes.filter(c => c.ativo && c.responsavel_id === d.me.id);
   const { run } = useBusy();
 
   const minhas = d.itens.filter(i => i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente");
@@ -59,12 +62,14 @@ export default function Minhas({ d }: { d: Dados }) {
     <>
       <Head eb={"olá, " + d.me.nome.split(" ")[0]} t="Minhas demandas"
         sub="Cada arte anda da esquerda para a direita. Seu trabalho termina quando ela chega em Aguardando aprovação."
-        right={clientes.length > 1 ? (
+        right={<div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
+          {meusClientes.length > 0 && <button type="button" className="btn pri sm" onClick={() => setForm({ cliente_id: filtro && meusClientes.some(c => c.id === filtro) ? filtro : meusClientes[0].id, data_post: iso(hojeSP()), responsavel_id: d.me.id })}>+ Novo post</button>}
+          {clientes.length > 1 && (
           <div className="kfiltro" role="group" aria-label="Filtrar por cliente">
             <button type="button" aria-pressed={!filtro} onClick={() => setFiltro("")}>Todos · {ativas.length}</button>
             {clientes.map(c => <button type="button" key={c.id} aria-pressed={filtro === c.id} onClick={() => setFiltro(c.id)}>{c.nome} · {c.n}</button>)}
-          </div>
-        ) : undefined} />
+          </div>)}
+        </div>} />
 
       <div className="kresumo">
         <span><b>{prontas} de {doMes.length}</b> artes de {mesAtual === d.mes ? "este mês" : "o mês"} entregues</span>
@@ -98,7 +103,9 @@ export default function Minhas({ d }: { d: Dados }) {
                             <div><b>{i.tipo}</b> · post {fmtw(dt(i.data_post))}</div>
                             {i.briefing && <div>{i.briefing}</div>}
                             {temArte(i) && <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setVer(i)}>ver o que foi entregue</button>}
-                            <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setRenomear(i)}>Trocar o nome do post</button>
+                            {c?.responsavel_id === d.me.id
+                              ? <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setForm(i)}>Editar nome, data ou excluir</button>
+                              : <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setRenomear(i)}>Trocar o nome do post</button>}
                           </div>
                         )}
                         <div className="kfoot">
@@ -127,6 +134,9 @@ export default function Minhas({ d }: { d: Dados }) {
       <Modal open={!!renomear} onClose={() => setRenomear(null)}>
         {renomear && <Renomear titulo="Trocar o nome do post" rotulo="Nome do post" atual={renomear.tema} fechar={() => setRenomear(null)}
           salvar={async novo => { const r = await supabase.from("itens").update({ tema: novo }).eq("id", renomear.id); if (!r.error) { d.aviso("Nome do post atualizado"); d.recarregar(); } return r; }} />}
+      </Modal>
+      <Modal open={!!form} onClose={() => setForm(null)}>
+        {form && <ItemForm key={form.id || "novo"} d={d} item={form} fechar={() => setForm(null)} />}
       </Modal>
       <Modal open={!!ver} onClose={() => setVer(null)}>
         {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)} />}

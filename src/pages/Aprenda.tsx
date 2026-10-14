@@ -203,6 +203,7 @@ const FAQ_FUNC = [
   ["Enviei o arquivo errado. E agora?", "Antes de entregar, é só remover na lista. Depois de entregue, peça ao dono para devolver em ajuste e reenvie o certo."],
   ["Meu vídeo não sobe.", "O limite é 50 MB por arquivo. Para vídeos maiores, salve no Drive e entregue pelo link."],
   ["Não aparece nenhuma arte para mim.", "Os posts do mês ainda não foram lançados ou o cliente não está com você. Fale com o dono."],
+  ["Posso criar, mudar a data ou apagar um post?", "Sim, nos clientes que são seus. Em Minhas demandas use + Novo post, ou abra um post e clique em Editar nome, data ou excluir. Em Calendários, escolha seu cliente e clique em Editar para arrastar posts de dia. Só dá para excluir post que ainda não foi entregue."],
   ["Quem vê as minhas entregas?", "Você e os donos da Agemax. Os outros funcionários não veem o seu quadro."],
 ];
 const FAQ_DONO = [

@@ -19,9 +19,12 @@ export default function Calendarios({ d }: { d: Dados }) {
   const [renCli, setRenCli] = useState(false);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<string | null>(null);
-  const editar = d.ehDono && editando;
-
   const c = d.cliente(sel);
+  const meuCli = !d.ehDono && c?.responsavel_id === d.me.id;
+  const editar = (d.ehDono || meuCli) && editando;
+  // funcionário mexe só nos posts dele, do cliente dele
+  const mexe = (i: Item) => d.ehDono || (i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente");
+
   const its = d.itens.filter(i => i.cliente_id === sel && noMes(i, d.mes));
   const [a, m] = d.mes.split("-").map(Number);
   const primeiro = new Date(a, m - 1, 1, 12), nd = new Date(a, m, 0).getDate(), off = primeiro.getDay();
@@ -53,7 +56,7 @@ export default function Calendarios({ d }: { d: Dados }) {
         {ps.map(i => {
           const conteudo = <><b>{i.tipo.toUpperCase()}</b>{i.tema}{editar && i.tipo !== "Prazo do cliente" && <small>{d.pessoa(i.responsavel_id)?.nome || "sem responsável"}</small>}</>;
           const cls = "p" + (i.tipo === "Prazo do cliente" ? " pz" : "") + (arrastando === String(i.id) ? " drag" : "");
-          return editar
+          return editar && mexe(i)
             ? <button type="button" className={cls} key={i.id} draggable title="Clique para editar ou arraste para outro dia"
                 onDragStart={e => { e.dataTransfer.setData("text/plain", String(i.id)); e.dataTransfer.effectAllowed = "move"; setArrastando(String(i.id)); }}
                 onDragEnd={() => { setArrastando(null); setAlvo(null); }}
@@ -63,7 +66,7 @@ export default function Calendarios({ d }: { d: Dados }) {
               : <div className={cls} key={i.id}>{conteudo}</div>;
         })}
         {editar && <button type="button" className="add" aria-label={`Adicionar post no dia ${dn}`}
-          onClick={() => setForm({ cliente_id: sel, data_post: dia, responsavel_id: c?.responsavel_id || null })}>+ post</button>}
+          onClick={() => setForm({ cliente_id: sel, data_post: dia, responsavel_id: d.ehDono ? (c?.responsavel_id || null) : d.me.id })}>+ post</button>}
       </div>
     );
   }
@@ -72,8 +75,8 @@ export default function Calendarios({ d }: { d: Dados }) {
   return (
     <>
       <Head eb="calendários" t="Cronograma de conteúdos"
-        sub={!d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para trocar o nome dele." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
-        right={d.ehDono ? <button type="button" className={"btn " + (editar ? "pri" : "gold")} aria-pressed={editar} onClick={() => setEditando(x => !x)}>{editar ? "Concluir edição" : "Editar"}</button> : undefined} />
+        sub={editar && !d.ehDono ? "Clique num post seu para mudar nome, data ou excluir. Arraste para trocar o dia ou use “+ post”." : !d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para trocar o nome dele. Nos clientes que são seus, use Editar para criar, mover ou excluir posts." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
+        right={d.ehDono || meuCli ? <button type="button" className={"btn " + (editar ? "pri" : "gold")} aria-pressed={editar} onClick={() => setEditando(x => !x)}>{editar ? "Concluir edição" : "Editar"}</button> : undefined} />
       <div className="calhead">
         <div className="calbrand">
           <div className="lg">{c?.logo ? <img src={c.logo} alt={"Logo " + c.nome} /> : <b>{c?.nome}</b>}</div>

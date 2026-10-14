@@ -82,20 +82,27 @@ export function TabelaProducao({ d, its, comResp, onEditar }: { d: Dados; its: I
 
 export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | null; fechar: () => void }) {
   const novo = !item?.id;
-  const [f, setF] = useState<Partial<Item>>(() => ({ tipo: "Estático", status: "A fazer", data_post: d.mes + "-01", ...item }));
+  const func = !d.ehDono; // funcionário: só clientes dele; cria, apaga e muda nome/data
+  const [f, setF] = useState<Partial<Item>>(() => ({ tipo: "Estático", status: "A fazer", data_post: d.mes + "-01", ...item, ...(func && !item?.id ? { responsavel_id: d.me.id } : {}) }));
   const { busy, err, run } = useBusy();
   const set = (k: keyof Item, v: any) => setF(x => ({ ...x, [k]: v }));
-  const escolherCliente = (id: string) => setF(x => ({ ...x, cliente_id: id, responsavel_id: x.responsavel_id || d.cliente(id)?.responsavel_id || null }));
+  const escolherCliente = (id: string) => setF(x => ({ ...x, cliente_id: id, responsavel_id: func ? d.me.id : (x.responsavel_id || d.cliente(id)?.responsavel_id || null) }));
+  const clientesForm = d.clientes.filter(c => c.ativo && (!func || c.responsavel_id === d.me.id));
+  const podeApagar = !func || ["A fazer", "Em produção", "Ajustes"].includes(item?.status || "");
 
   const salvar = async (e: FormEvent) => {
     e.preventDefault();
-    const dados: any = { cliente_id: f.cliente_id, tema: f.tema, tipo: f.tipo, data_post: f.data_post, responsavel_id: f.tipo === "Prazo do cliente" ? null : (f.responsavel_id || null), briefing: f.briefing || null, objetivo: f.objetivo || null, status: f.status, link: f.link || null };
+    const dados: any = func && !novo ? { tema: f.tema, data_post: f.data_post } : func ? { cliente_id: f.cliente_id, tema: f.tema, tipo: f.tipo, data_post: f.data_post, responsavel_id: d.me.id, briefing: f.briefing || null, status: "A fazer" } : { cliente_id: f.cliente_id, tema: f.tema, tipo: f.tipo, data_post: f.data_post, responsavel_id: f.tipo === "Prazo do cliente" ? null : (f.responsavel_id || null), briefing: f.briefing || null, objetivo: f.objetivo || null, status: f.status, link: f.link || null };
     const ok = await run(() => (novo ? supabase.from("itens").insert(dados) : supabase.from("itens").update(dados).eq("id", item!.id)) as any);
     if (ok) { fechar(); d.aviso(novo ? "Post criado" : "Post atualizado"); d.recarregar(); }
   };
   const apagar = async () => {
     if (!item?.id) return;
-    const ok = await run(() => supabase.from("itens").delete().eq("id", item.id) as any);
+    const ok = await run(async () => {
+      const r = await supabase.from("itens").delete().eq("id", item.id!).select("id");
+      if (!r.error && !(r.data || []).length) return { error: { message: "Você não pode excluir este post (só posts seus, de clientes seus, que ainda não foram entregues)." } };
+      return r;
+    });
     if (ok) { fechar(); d.aviso("Post excluído"); d.recarregar(); }
   };
   const [confirmar, setConfirmar] = useState(false);
@@ -105,17 +112,17 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
     <form className="form" onSubmit={salvar}>
       <h2>{novo ? "Novo post" : "Editar post"}</h2>
       <label htmlFor="it-cli">Cliente
-        <select id="it-cli" required value={f.cliente_id || ""} onChange={e => escolherCliente(e.target.value)}>
+        <select id="it-cli" required disabled={func && !novo} value={f.cliente_id || ""} onChange={e => escolherCliente(e.target.value)}>
           <option value="" disabled>Escolha o cliente</option>
-          {d.clientes.filter(c => c.ativo).map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+          {clientesForm.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
       </label>
       <label htmlFor="it-tema">Tema do post<input id="it-tema" required value={f.tema || ""} onChange={e => set("tema", e.target.value)} placeholder="Ex.: Black Friday: ofertas da semana" /></label>
       <div className="row2">
-        <label htmlFor="it-tipo">Tipo<select id="it-tipo" value={f.tipo} onChange={e => set("tipo", e.target.value)}>{TIPOS.map(t => <option key={t}>{t}</option>)}</select></label>
+        <label htmlFor="it-tipo">Tipo<select id="it-tipo" disabled={func && !novo} value={f.tipo} onChange={e => set("tipo", e.target.value)}>{TIPOS.filter(t => !func || t !== "Prazo do cliente").map(t => <option key={t}>{t}</option>)}</select></label>
         <label htmlFor="it-data">Data do post<input id="it-data" type="date" required value={f.data_post || ""} onChange={e => set("data_post", e.target.value)} /></label>
       </div>
-      {f.tipo !== "Prazo do cliente" && (
+      {!func && f.tipo !== "Prazo do cliente" && (
         <div className="row2">
           <label htmlFor="it-resp">Responsável<select id="it-resp" value={f.responsavel_id || ""} onChange={e => set("responsavel_id", e.target.value || null)}>
             <option value="">Sem responsável</option>{equipe.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
@@ -123,10 +130,11 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
           <label htmlFor="it-status">Status<select id="it-status" value={f.status} onChange={e => set("status", e.target.value)}>{STATUS.map(s => <option key={s}>{s}</option>)}</select></label>
         </div>
       )}
-      <label htmlFor="it-brief">Briefing para quem vai produzir<textarea id="it-brief" value={f.briefing || ""} onChange={e => set("briefing", e.target.value)} placeholder="O que mostrar, referências, o que confirmar com o cliente" /></label>
+      <label htmlFor="it-brief">Briefing para quem vai produzir<textarea id="it-brief" disabled={func && !novo} value={f.briefing || ""} onChange={e => set("briefing", e.target.value)} placeholder="O que mostrar, referências, o que confirmar com o cliente" /></label>
       {err && <div className="err">{err}</div>}
       <div className="acts">
-        {!novo && (confirmar
+        {func && !novo && <p className="muted" style={{ margin: 0, fontSize: 13, flexBasis: "100%" }}>Você pode mudar o nome e a data. Tipo e briefing ficam com o dono.</p>}
+        {!novo && podeApagar && (confirmar
           ? <button type="button" className="btn danger" onClick={apagar} disabled={busy}>Confirmar exclusão</button>
           : <button type="button" className="btn danger" onClick={() => setConfirmar(true)}>Excluir</button>)}
         <span style={{ flex: 1 }} />
