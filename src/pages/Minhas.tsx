@@ -4,6 +4,7 @@ import type { Dados } from "../App";
 import { Item, temArte, alerta, ordenar, placar, noMes, hojeSP, iso, dt, fmt, fmtw, prazoDe } from "../regras";
 import { Head, Modal, useBusy } from "../ui";
 import { EntregaForm, EntregaVer } from "./entrega";
+import { Renomear } from "./renomear";
 
 type Col = { chave: string; nome: string; dica: string; cor: string; status: string[] };
 const COLUNAS: Col[] = [
@@ -32,6 +33,7 @@ export default function Minhas({ d }: { d: Dados }) {
   const [filtro, setFiltro] = useState<string>("");
   const [entregar, setEntregar] = useState<Item | null>(null);
   const [ver, setVer] = useState<Item | null>(null);
+  const [renomear, setRenomear] = useState<Item | null>(null);
   const [aberto, setAberto] = useState<number | null>(null);
   const { run } = useBusy();
 
@@ -96,6 +98,7 @@ export default function Minhas({ d }: { d: Dados }) {
                             <div><b>{i.tipo}</b> · post {fmtw(dt(i.data_post))}</div>
                             {i.briefing && <div>{i.briefing}</div>}
                             {temArte(i) && <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setVer(i)}>ver o que foi entregue</button>}
+                            <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setRenomear(i)}>Trocar o nome do post</button>
                           </div>
                         )}
                         <div className="kfoot">
@@ -120,6 +123,10 @@ export default function Minhas({ d }: { d: Dados }) {
         )}
       <Modal open={!!entregar} onClose={() => setEntregar(null)}>
         {entregar && <EntregaForm d={d} i={entregar} fechar={() => setEntregar(null)} />}
+      </Modal>
+      <Modal open={!!renomear} onClose={() => setRenomear(null)}>
+        {renomear && <Renomear titulo="Trocar o nome do post" rotulo="Nome do post" atual={renomear.tema} fechar={() => setRenomear(null)}
+          salvar={async novo => { const r = await supabase.from("itens").update({ tema: novo }).eq("id", renomear.id); if (!r.error) { d.aviso("Nome do post atualizado"); d.recarregar(); } return r; }} />}
       </Modal>
       <Modal open={!!ver} onClose={() => setVer(null)}>
         {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)} />}
