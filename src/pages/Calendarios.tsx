@@ -5,6 +5,7 @@ import type { Dados } from "../App";
 import { Item, iso, mesLabel, noMes } from "../regras";
 import { Head, MesNav, Modal } from "../ui";
 import { ItemForm } from "./tabela";
+import { Renomear } from "./renomear";
 
 const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 
@@ -14,6 +15,8 @@ export default function Calendarios({ d }: { d: Dados }) {
   const [sel, setSel] = useState(clis[0]?.id || "");
   const [editando, setEditando] = useState(false);
   const [form, setForm] = useState<Partial<Item> | null>(null);
+  const [renPost, setRenPost] = useState<Item | null>(null);
+  const [renCli, setRenCli] = useState(false);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<string | null>(null);
   const editar = d.ehDono && editando;
@@ -55,7 +58,9 @@ export default function Calendarios({ d }: { d: Dados }) {
                 onDragStart={e => { e.dataTransfer.setData("text/plain", String(i.id)); e.dataTransfer.effectAllowed = "move"; setArrastando(String(i.id)); }}
                 onDragEnd={() => { setArrastando(null); setAlvo(null); }}
                 onClick={() => setForm(i)}>{conteudo}</button>
-            : <div className={cls} key={i.id}>{conteudo}</div>;
+            : !d.ehDono && i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente"
+              ? <button type="button" className={cls} key={i.id} title="Clique para trocar o nome do post" onClick={() => setRenPost(i)}>{conteudo}</button>
+              : <div className={cls} key={i.id}>{conteudo}</div>;
         })}
         {editar && <button type="button" className="add" aria-label={`Adicionar post no dia ${dn}`}
           onClick={() => setForm({ cliente_id: sel, data_post: dia, responsavel_id: c?.responsavel_id || null })}>+ post</button>}
@@ -67,12 +72,13 @@ export default function Calendarios({ d }: { d: Dados }) {
   return (
     <>
       <Head eb="calendários" t="Cronograma de conteúdos"
-        sub={!d.ehDono ? "Os calendários dos clientes que estão com você." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
+        sub={!d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para trocar o nome dele." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
         right={d.ehDono ? <button type="button" className={"btn " + (editar ? "pri" : "gold")} aria-pressed={editar} onClick={() => setEditando(x => !x)}>{editar ? "Concluir edição" : "Editar"}</button> : undefined} />
       <div className="calhead">
         <div className="calbrand">
           <div className="lg">{c?.logo ? <img src={c.logo} alt={"Logo " + c.nome} /> : <b>{c?.nome}</b>}</div>
-          <div><div className="caltitle">CRONOGRAMA DE CONTEÚDOS</div><div className="muted">{c?.nome} · {mesLabel(d.mes)} · {its.filter(i => i.tipo !== "Prazo do cliente").length} posts</div></div>
+          <div><div className="caltitle">CRONOGRAMA DE CONTEÚDOS</div><div className="muted">{c?.nome} · {mesLabel(d.mes)} · {its.filter(i => i.tipo !== "Prazo do cliente").length} posts</div>
+            {!d.ehDono && c?.responsavel_id === d.me.id && <button type="button" className="linkbtn" onClick={() => setRenCli(true)}>Trocar o nome do cliente</button>}</div>
         </div>
         <div className="filters">
           <select aria-label="Cliente" value={sel} onChange={e => setSel(e.target.value)}>{clis.map(x => <option key={x.id} value={x.id}>{x.nome}</option>)}</select>
@@ -82,6 +88,14 @@ export default function Calendarios({ d }: { d: Dados }) {
       <div className="tablewrap" style={{ border: 0, background: "transparent" }}>
         <div className={"calgrid" + (editar ? " editando" : "")}>{DIAS.map(x => <div className="dh" key={x}>{x}</div>)}{cel}</div>
       </div>
+      <Modal open={!!renPost} onClose={() => setRenPost(null)}>
+        {renPost && <Renomear titulo="Trocar o nome do post" rotulo="Nome do post" atual={renPost.tema} fechar={() => setRenPost(null)}
+          salvar={async novo => { const r = await supabase.from("itens").update({ tema: novo }).eq("id", renPost.id); if (!r.error) { d.aviso("Nome do post atualizado"); d.recarregar(); } return r; }} />}
+      </Modal>
+      <Modal open={renCli} onClose={() => setRenCli(false)}>
+        {renCli && c && <Renomear titulo="Trocar o nome do cliente" rotulo="Nome do cliente" atual={c.nome} fechar={() => setRenCli(false)}
+          salvar={async novo => { const r = await supabase.from("clientes").update({ nome: novo }).eq("id", c.id); if (!r.error) { d.aviso("Nome do cliente atualizado"); d.recarregar(); } return r; }} />}
+      </Modal>
       <Modal open={!!form} onClose={() => setForm(null)}>
         {form && <ItemForm key={form.id || "novo-" + form.data_post} d={d} item={form} fechar={() => setForm(null)} />}
       </Modal>
