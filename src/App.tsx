@@ -14,6 +14,7 @@ import WhatsApp from "./pages/WhatsApp";
 import Aprenda from "./pages/Aprenda";
 import Radar from "./pages/Radar";
 import Links from "./pages/Links";
+import Historico from "./pages/Historico";
 import { limparArquivos } from "./pages/entrega";
 import BoasVindas from "./pages/BoasVindas";
 import { EVENTO_APRENDA, licoesVistas, viuBoasVindas } from "./aprenda-progresso";
@@ -28,7 +29,7 @@ export type Dados = {
 
 type Grupo = [string, [string, string][]];
 const GRUPOS_DONO: Grupo[] = [
-  ["Visão geral", [["painel", "Painel"], ["producao", "Produção"]]],
+  ["Visão geral", [["painel", "Painel"], ["producao", "Produção"], ["historico", "Histórico"]]],
   ["Conteúdo", [["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["links", "Links"]]],
   ["Clientes e equipe", [["clientes", "Clientes"], ["equipe", "Equipe"]]],
   ["Cobrança", [["whatsapp", "WhatsApp"]]],
@@ -49,6 +50,7 @@ const ICONES: Record<string, string> = {
   equipe: "M12 11a4 4 0 1 0 0-8a4 4 0 0 0 0 8zM5 21a7 7 0 0 1 14 0",
   whatsapp: "M4 5h16v11H8l-4 4z",
   desempenho: "M4 20V10M10 20V4M16 20v-7M22 20H2",
+  historico: "M12 7v5l3 2M3 12a9 9 0 1 0 3-6.7M3 4v4h4",
   links: "M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1",
   aprenda: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 5v16",
 };
@@ -165,7 +167,7 @@ export default function App() {
   const ultimo = semanas.find(s => s.publicado_em);
   const nRadar = ehDono || !ultimo ? 0 : ideias.filter(x => x.semana_id === ultimo.id && !x.visto_em && x.estado === "nova").length;
 
-  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda, radar: Radar, links: Links }[atual];
+  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda, radar: Radar, links: Links, historico: Historico }[atual];
 
   return (
     <div className="app">
