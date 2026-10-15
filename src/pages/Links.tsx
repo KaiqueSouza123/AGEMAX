@@ -35,9 +35,12 @@ export default function Links({ d }: { d: Dados }) {
   const clis = soMeus && temMeus ? ativos.filter(c => c.responsavel_id === d.me.id) : ativos;
   const q = busca.trim().toLowerCase();
   const casa = (l: Link, nomeCli: string) => !q || [l.titulo, l.url, l.obs || "", nomeCli].some(x => x.toLowerCase().includes(q));
+  // ordem: card geral sempre primeiro, depois clientes com link, e os sem link por último
+  const porCliente = clis.map(c => ({ id: c.id as string | null, nome: c.nome, ls: (links || []).filter(l => l.cliente_id === c.id && casa(l, c.nome)) }));
   const grupos = [
-    ...clis.map(c => ({ id: c.id as string | null, nome: c.nome, ls: (links || []).filter(l => l.cliente_id === c.id && casa(l, c.nome)) })),
     { id: null, nome: "Agemax (geral)", ls: (links || []).filter(l => !l.cliente_id && casa(l, "agemax geral")) },
+    ...porCliente.filter(g => g.ls.length),
+    ...porCliente.filter(g => !g.ls.length),
   ].filter(g => g.ls.length || !q);
   const total = (links || []).length;
 
