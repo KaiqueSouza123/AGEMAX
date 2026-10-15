@@ -7,6 +7,7 @@ export type Link = { id: number; cliente_id: string | null; titulo: string; url:
 
 const dominio = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
 const ehDrive = (u: string) => /drive\.google|docs\.google/.test(u);
+const tagDe = (id: string | null) => id ? "tg" + ([...id].reduce((s, c) => s + c.charCodeAt(0), 0) % 5) : "tg-ag";
 const quando = (s: string) => { const d = new Date(s); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }); };
 
 export default function Links({ d }: { d: Dados }) {
@@ -54,7 +55,7 @@ export default function Links({ d }: { d: Dados }) {
           <button type="button" aria-pressed={soMeus} onClick={() => setSoMeus(true)}>Meus clientes</button>
           <button type="button" aria-pressed={!soMeus} onClick={() => setSoMeus(false)}>Todos</button>
         </div>}
-        <span className="muted">{total} link{total === 1 ? "" : "s"}</span>
+        <span className="lk-total"><b>{total}</b> link{total === 1 ? "" : "s"} salvos</span>
       </div>
 
       {links === null ? <div className="panel empty">Carregando…</div> : grupos.length === 0 ? <div className="panel empty">Nada encontrado para “{busca}”.</div> : (
@@ -62,7 +63,7 @@ export default function Links({ d }: { d: Dados }) {
           {grupos.map(g => (
             <section className="lk-cli" key={g.id || "geral"} aria-label={g.nome}>
               <header>
-                <h2>{g.nome}</h2>
+                <h2><span className={"ktag " + tagDe(g.id)}>{g.nome}</span>{g.ls.length > 0 && <small>{g.ls.length}</small>}</h2>
                 <button type="button" className="linkbtn" onClick={() => setForm({ cliente_id: g.id, titulo: g.ls.length ? "" : "Pasta do Drive" })}>+ link</button>
               </header>
               {g.ls.length === 0 && <p className="lk-vazio">Sem link ainda.</p>}
