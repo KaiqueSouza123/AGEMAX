@@ -204,11 +204,13 @@ const FAQ_FUNC = [
   ["Meu vídeo não sobe.", "O limite é 50 MB por arquivo. Para vídeos maiores, salve no Drive e entregue pelo link."],
   ["Não aparece nenhuma arte para mim.", "Os posts do mês ainda não foram lançados ou o cliente não está com você. Fale com o dono."],
   ["Posso criar, mudar a data ou apagar um post?", "Sim, nos clientes que são seus. Em Minhas demandas use + Novo post, ou abra um post e clique em Editar nome, data ou excluir. Em Calendários, escolha seu cliente e clique em Editar para arrastar posts de dia. Só dá para excluir post que ainda não foi entregue."],
+  ["Onde fica a pasta do Drive do cliente?", "Na aba Links. Lá ficam as pastas e links de cada cliente. Se faltar um ou estiver errado, clique em + link ou Editar: todo mundo pode corrigir."],
   ["Quem vê as minhas entregas?", "Você e os donos da Agemax. Os outros funcionários não veem o seu quadro."],
 ];
 const FAQ_DONO = [
   ["O funcionário não vê os posts.", "Confira se os posts estão no nome dele (Produção ou Calendários › Editar). Trocar o responsável do cliente leva junto os posts em aberto."],
   ["Como dar acesso a alguém novo?", "Cadastre o e-mail em Equipe. A pessoa entra no site, clica em Primeiro acesso e cria a senha."],
+  ["Onde guardo as pastas do Drive dos clientes?", "Na aba Links. Toda a equipe vê e pode adicionar, corrigir ou excluir. Cada link mostra quem mexeu por último."],
   ["Posso apagar um post?", "Sim: Calendários › Editar ou Produção › Editar, e depois Excluir."],
   ["Os arquivos ficam guardados para sempre?", "Não. Arquivos de posts aprovados são apagados sozinhos no fim do mês (os de mais de 30 dias) ou quando o espaço está perto do limite. Baixe o que quiser guardar."],
   ["Por que a pontualidade mudou?", "Ela conta as artes do mês entregues até o prazo. Atrasadas e sem link baixam o número."],
