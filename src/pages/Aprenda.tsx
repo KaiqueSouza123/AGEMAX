@@ -210,6 +210,7 @@ const FAQ_FUNC = [
 const FAQ_DONO = [
   ["O funcionário não vê os posts.", "Confira se os posts estão no nome dele (Produção ou Calendários › Editar). Trocar o responsável do cliente leva junto os posts em aberto."],
   ["Como dar acesso a alguém novo?", "Cadastre o e-mail em Equipe. A pessoa entra no site, clica em Primeiro acesso e cria a senha."],
+  ["Como sei quem mudou alguma coisa?", "Na aba Histórico (Visão geral). Tudo que alguém cria, muda ou apaga aparece lá com o nome da pessoa, o horário e o antes e depois. Dá para filtrar por pessoa, cliente e período."],
   ["Onde guardo as pastas do Drive dos clientes?", "Na aba Links. Toda a equipe vê e pode adicionar, corrigir ou excluir. Cada link mostra quem mexeu por último."],
   ["Posso apagar um post?", "Sim: Calendários › Editar ou Produção › Editar, e depois Excluir."],
   ["Os arquivos ficam guardados para sempre?", "Não. Arquivos de posts aprovados são apagados sozinhos no fim do mês (os de mais de 30 dias) ou quando o espaço está perto do limite. Baixe o que quiser guardar."],
