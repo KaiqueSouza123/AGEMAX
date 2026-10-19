@@ -23,7 +23,7 @@ export type RadarIdeia = {
 };
 export const ehTrend = (i: Item) => /^trend da semana/i.test(i.tema);
 
-export const STATUS = ["A fazer", "Em produção", "Entregue", "Ajustes", "Aprovado", "Postado"];
+export const STATUS = ["A fazer", "Entregue", "Ajustes", "Aprovado", "Postado"];
 export const TIPOS = ["Estático", "Carrossel", "Reels", "Stories", "Vídeo", "Prazo do cliente"];
 const ENTREGUE = new Set(["Entregue", "Aprovado", "Postado"]);
 const DS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];

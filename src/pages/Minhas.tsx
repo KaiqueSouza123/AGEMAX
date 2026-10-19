@@ -9,8 +9,7 @@ import { ItemForm } from "./tabela";
 
 type Col = { chave: string; nome: string; dica: string; cor: string; status: string[] };
 const COLUNAS: Col[] = [
-  { chave: "fazer", nome: "A fazer", dica: "Ordem: prazo da arte mais perto primeiro.", cor: "var(--mute)", status: ["A fazer"] },
-  { chave: "prod", nome: "Em produção", dica: "Terminou? Anexe a imagem ou o vídeo (ou o link) e entregue.", cor: "var(--teal)", status: ["Em produção"] },
+  { chave: "fazer", nome: "A fazer", dica: "Prazo da arte mais perto primeiro. Terminou? Clique em Entregar.", cor: "var(--mute)", status: ["A fazer", "Em produção"] },
   { chave: "aprov", nome: "Aguardando aprovação", dica: "Entregue. Agora é com o dono.", cor: "var(--ok)", status: ["Entregue"] },
   { chave: "ajuste", nome: "Ajustes pedidos", dica: "Voltou para você com o que mudar.", cor: "var(--bad)", status: ["Ajustes"] },
 ];
@@ -53,10 +52,6 @@ export default function Minhas({ d }: { d: Dados }) {
   const atrasadas = ativas.filter(i => alerta(i) === "ATRASADO").length;
   const p = placar(doMes);
 
-  const comecar = async (i: Item) => {
-    const ok = await run(() => supabase.from("itens").update({ status: "Em produção" }).eq("id", i.id) as any);
-    if (ok) { d.aviso("Foi para Em produção"); d.recarregar(); }
-  };
 
   return (
     <>
@@ -110,11 +105,7 @@ export default function Minhas({ d }: { d: Dados }) {
                         )}
                         <div className="kfoot">
                           <span>post {fmtw(dt(i.data_post))}</span>
-                          {i.status === "A fazer" && <span className="kbtns">
-                            <button type="button" className="kja" onClick={() => setEntregar(i)}>já terminei</button>
-                            <button type="button" className="btn sm" onClick={() => comecar(i)}>Comecei</button>
-                          </span>}
-                          {i.status === "Em produção" && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Entregar</button>}
+                          {(i.status === "A fazer" || i.status === "Em produção") && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Entregar</button>}
                           {i.status === "Ajustes" && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Reenviar</button>}
                           {i.status === "Entregue" && (temArte(i)
                             ? <button type="button" className="btn sm" onClick={() => setVer(i)}>Ver arte</button>

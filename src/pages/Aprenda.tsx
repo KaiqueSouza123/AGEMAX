@@ -41,7 +41,7 @@ const MEntrega = () => (
 );
 const MCols = ({ foco }: { foco?: number }) => (
   <div className="mv-cols">
-    {[["A fazer", "var(--mute)", 4], ["Em produção", "var(--teal)", 1], ["Aguardando", "var(--ok)", 1], ["Ajustes", "var(--bad)", 1]].map(([n, c, q], k) => (
+    {[["A fazer", "var(--mute)", 4], ["Aguardando", "var(--ok)", 1], ["Ajustes", "var(--bad)", 1]].map(([n, c, q], k) => (
       <div key={k} className={"mv-col" + (foco === k ? " foco" : "")}><span><i style={{ background: c as string }} />{n}</span>{Array.from({ length: q as number }).map((_, j) => <em key={j} />)}</div>
     ))}
   </div>
@@ -98,23 +98,22 @@ const FUNC: Licao[] = [
     intro: "É onde ficam todas as artes que estão com você, com o prazo de cada uma e o lugar de entregar. Substitui a planilha de produção.",
     passos: [
       { v: <MNav itens={["Minhas demandas", "Calendários", "Meu desempenho", "Meus avisos", "Aprenda"]} ativo={0} />, t: <>No menu ficam suas 5 áreas. Você vai passar quase todo o tempo em <b>Minhas demandas</b>.</> },
-      { v: <MCard titulo="Assistência técnica" prazo="arte até ter 13/10" botao="Comecei" />, t: <>Cada post do calendário do cliente vira um <b>cartão</b> para você produzir.</> },
+      { v: <MCard titulo="Assistência técnica" prazo="arte até ter 13/10" botao="Entregar" pri />, t: <>Cada post do calendário do cliente vira um <b>cartão</b> para você produzir.</> },
       { v: <MKpis />, t: <>Só <b>você e os donos</b> veem o seu quadro. Tudo atualiza sozinho, sem precisar recarregar a página.</> },
     ], praticar: ["minhas", "Abrir Minhas demandas"] },
-  { id: "f2", titulo: "Seu quadro de demandas", sub: "As 4 colunas e o caminho da arte", min: 1,
+  { id: "f2", titulo: "Seu quadro de demandas", sub: "As 3 colunas e o caminho da arte", min: 1,
     intro: "Cada arte anda da esquerda para a direita. Seu trabalho termina quando ela chega em Aguardando aprovação.",
     passos: [
-      { v: <MCols foco={0} />, t: <><b>A fazer</b>: o que ainda não começou, com o prazo mais perto em cima.</> },
-      { v: <MCols foco={1} />, t: <><b>Em produção</b>: o que você está fazendo agora.</> },
-      { v: <MCols foco={2} />, t: <><b>Aguardando aprovação</b>: você entregou, agora é com o dono. Se ele pedir mudança, a arte vai para <b>Ajustes</b>.</> },
+      { v: <MCols foco={0} />, t: <><b>A fazer</b>: tudo que você ainda precisa entregar, com o prazo mais perto em cima.</> },
+      { v: <MCols foco={1} />, t: <><b>Aguardando aprovação</b>: você entregou, agora é com o dono. Se ele pedir mudança, a arte vai para <b>Ajustes</b>.</> },
     ], dica: <>Clique no nome do post para ver o <b>briefing</b>. Com mais de um cliente, use os botões do topo para filtrar.</>, praticar: ["minhas", "Ver meu quadro"] },
   { id: "f3", titulo: "Como entregar uma arte", sub: "Arquivo ou link, e Entregar", min: 1,
     intro: "Agora dá para enviar o próprio arquivo, sem precisar de link. A entrega conta quando tem arquivo ou link.",
     passos: [
-      { v: <MCard titulo="Assistência técnica" botao="Comecei" foco />, t: <>Abriu a arte para fazer? Clique em <b>Comecei</b>. Ela vai para Em produção.</> },
+      { v: <MCard titulo="Assistência técnica" botao="Entregar" pri foco />, t: <>Terminou a arte? Clique em <b>Entregar</b> no cartão.</> },
       { v: <MArquivos />, t: <>Terminou? Clique em <b>Entregar</b> e anexe a <b>imagem ou o vídeo</b> (até 50 MB cada) ou cole o <b>link</b> do Drive/Canva. Pode usar os dois. No celular, escolha da galeria ou da câmera.</> },
       { v: <MEntrega />, t: <>Espere o envio terminar e clique em <b>Entregar</b>. A arte vai para Aguardando aprovação e o dono baixa direto da plataforma.</> },
-    ], dica: <>Vídeo com mais de 50 MB? Envie pelo <b>link do Drive</b>. Terminou sem ter clicado em Comecei? Use <b>já terminei</b> no cartão.</>, praticar: ["minhas", "Entregar uma arte"] },
+    ], dica: <>Vídeo com mais de 50 MB? Envie pelo <b>link do Drive</b>.</>, praticar: ["minhas", "Entregar uma arte"] },
   { id: "f4", titulo: "Prazos e cores", sub: "Dourado, HOJE e atrasada", min: 1,
     intro: "O prazo que importa para você é o da arte, não o dia do post.",
     passos: [
@@ -125,7 +124,7 @@ const FUNC: Licao[] = [
   { id: "f5", titulo: "Quando pedem ajuste", sub: "Refazer e reenviar", min: 1,
     intro: "Se o dono pedir mudança, a arte volta para você na coluna Ajustes pedidos.",
     passos: [
-      { v: <MCols foco={3} />, t: <>A arte aparece em <b>Ajustes pedidos</b>, com o prazo para refazer.</> },
+      { v: <MCols foco={2} />, t: <>A arte aparece em <b>Ajustes pedidos</b>, com o prazo para refazer.</> },
       { v: <MArquivos />, t: <>Faça a mudança e anexe o <b>arquivo novo</b> (ou o link). Os arquivos anteriores aparecem na lista e você pode remover os que não valem mais.</> },
       { v: <MCard tag="Sand" tg="tg3" titulo="Reboco sem trinca" prazo="refazer até sex 16/10" pc="pz-gold" botao="Reenviar" pri foco />, t: <>Clique em <b>Reenviar</b>. Ela volta para Aguardando aprovação.</> },
     ] },

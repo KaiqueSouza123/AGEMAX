@@ -49,7 +49,6 @@ export function TabelaProducao({ d, its, comResp, onEditar }: { d: Dados; its: I
                   <td style={{ whiteSpace: "nowrap" }}>
                     {ehPrazoCliente(i) ? (d.ehDono && onEditar ? <button type="button" className="btn sm" onClick={() => onEditar(i)}>Editar</button> : null) : meu ? (
                       <>
-                        {(i.status === "A fazer") && <button type="button" className="btn sm" onClick={() => mudar(i, { status: "Em produção" }, "Marcado como em produção")}>Comecei</button>}{" "}
                         {(!ENTREGUE.has(i.status) || !temArte(i)) && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>{i.status === "Ajustes" ? "Reenviar" : "Entregar"}</button>}
                         {ENTREGUE.has(i.status) && temArte(i) && <span className="muted">{i.status === "Entregue" ? "aguardando aprovação" : i.status}</span>}
                       </>
