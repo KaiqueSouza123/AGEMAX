@@ -212,6 +212,7 @@ const FAQ_DONO = [
   ["Como sei quem mudou alguma coisa?", "Na aba Histórico (Visão geral). Tudo que alguém cria, muda ou apaga aparece lá com o nome da pessoa, o horário e o antes e depois. Dá para filtrar por pessoa, cliente e período."],
   ["Designer vê ideia de vídeo?", "Não. Pela função cadastrada em Equipe: Designer não vê Reels e vídeos no calendário e no Radar; Videomaker ou editor de vídeo não vê posts de imagem. Stories e prazos do cliente aparecem para todos. Quem tem outra função vê tudo."],
   ["Onde guardo as pastas do Drive dos clientes?", "Na aba Links. Toda a equipe vê e pode adicionar, corrigir ou excluir. Cada link mostra quem mexeu por último."],
+  ["Como mando o calendário para o cliente?", "Em Calendários, escolha o cliente e o mês e clique em Baixar PDF. O PDF sai no formato Agemax com os posts como estão agora, então qualquer mudança feita no site já entra no arquivo."],
   ["Posso apagar um post?", "Sim: Calendários › Editar ou Produção › Editar, e depois Excluir."],
   ["Os arquivos ficam guardados para sempre?", "Não. Arquivos de posts aprovados são apagados sozinhos no fim do mês (os de mais de 30 dias) ou quando o espaço está perto do limite. Baixe o que quiser guardar."],
   ["Por que a pontualidade mudou?", "Ela conta as artes do mês entregues até o prazo. Atrasadas e sem link baixam o número."],

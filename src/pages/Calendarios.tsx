@@ -6,6 +6,7 @@ import { Item, areaDe, iso, mesLabel, noMes, veTipo } from "../regras";
 import { Head, MesNav, Modal } from "../ui";
 import { ItemForm } from "./tabela";
 import { Renomear } from "./renomear";
+import { cronogramaPDF } from "../pdfCalendario";
 
 const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 
@@ -19,6 +20,7 @@ export default function Calendarios({ d }: { d: Dados }) {
   const [renCli, setRenCli] = useState(false);
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<string | null>(null);
+  const [gerando, setGerando] = useState(false);
   const c = d.cliente(sel);
   const meuCli = !d.ehDono && c?.responsavel_id === d.me.id;
   const editar = (d.ehDono || meuCli) && editando;
@@ -77,7 +79,15 @@ export default function Calendarios({ d }: { d: Dados }) {
     <>
       <Head eb="calendários" t="Cronograma de conteúdos"
         sub={editar && !d.ehDono ? "Clique num post seu para mudar nome, data ou excluir. Arraste para trocar o dia ou use “+ post”." : !d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para trocar o nome dele. Nos clientes que são seus, use Editar para criar, mover ou excluir posts." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
-        right={d.ehDono || meuCli ? <button type="button" className={"btn " + (editar ? "pri" : "gold")} aria-pressed={editar} onClick={() => setEditando(x => !x)}>{editar ? "Concluir edição" : "Editar"}</button> : undefined} />
+        right={<div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button type="button" className="btn" disabled={gerando || !c} onClick={async () => {
+            if (!c) return; setGerando(true);
+            try { await cronogramaPDF({ cliente: c, mes: d.mes, itens: its, responsavel: d.pessoa(c.responsavel_id) || undefined }); d.aviso("PDF baixado com os posts de agora"); }
+            catch { d.aviso("Não consegui gerar o PDF. Tente de novo."); }
+            finally { setGerando(false); }
+          }}>{gerando ? "Gerando PDF…" : "Baixar PDF"}</button>
+          {(d.ehDono || meuCli) && <button type="button" className={"btn " + (editar ? "pri" : "gold")} aria-pressed={editar} onClick={() => setEditando(x => !x)}>{editar ? "Concluir edição" : "Editar"}</button>}
+        </div>} />
       <div className="calhead">
         <div className="calbrand">
           <div className="lg">{c?.logo ? <img src={c.logo} alt={"Logo " + c.nome} /> : <b>{c?.nome}</b>}</div>
