@@ -720,3 +720,4 @@ dialog:has(.pf){width:min(520px,94vw)}
 .ev-leg-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ev-leg-top span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .ev-leg p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.45}
+.ktipos{justify-content:flex-start;align-items:center;margin-top:-8px}.ktipos .muted{font-size:13px;margin-right:2px}

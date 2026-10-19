@@ -32,6 +32,7 @@ function rotuloPrazo(i: Item): { txt: string; cls: string } {
 
 export default function Minhas({ d }: { d: Dados }) {
   const [filtro, setFiltro] = useState<string>("");
+  const [tipoF, setTipoF] = useState<string>("");
   const [entregar, setEntregar] = useState<Item | null>(null);
   const [ver, setVer] = useState<Item | null>(null);
   const [renomear, setRenomear] = useState<Item | null>(null);
@@ -46,7 +47,10 @@ export default function Minhas({ d }: { d: Dados }) {
   const ativas = ordenar(minhas.filter(i => !["Aprovado", "Postado"].includes(i.status)));
   const clientes = [...new Set(ativas.map(i => i.cliente_id))].map(id => ({ id, nome: d.cliente(id)?.nome || "—", n: ativas.filter(i => i.cliente_id === id).length }))
     .sort((a, b) => a.nome.localeCompare(b.nome));
-  const vis = filtro ? ativas.filter(i => i.cliente_id === filtro) : ativas;
+  const doCli = filtro ? ativas.filter(i => i.cliente_id === filtro) : ativas;
+  const tipos = [...new Set(doCli.map(i => i.tipo))].sort().map(t => ({ t, n: doCli.filter(i => i.tipo === t).length }));
+  const tipoA = tipos.some(x => x.t === tipoF) ? tipoF : "";
+  const vis = tipoA ? doCli.filter(i => i.tipo === tipoA) : doCli;
 
   const doMes = minhas.filter(i => noMes(i, mesAtual));
   const prontas = doMes.filter(i => ["Entregue", "Aprovado", "Postado"].includes(i.status) && temArte(i)).length;
@@ -66,6 +70,13 @@ export default function Minhas({ d }: { d: Dados }) {
           </div>)}
         </div>} />
 
+      {tipos.length > 1 && (
+        <div className="kfiltro ktipos" role="group" aria-label="Filtrar por tipo de post">
+          <span className="muted">Tipo:</span>
+          <button type="button" aria-pressed={!tipoA} onClick={() => setTipoF("")}>Todos</button>
+          {tipos.map(x => <button type="button" key={x.t} aria-pressed={tipoA === x.t} onClick={() => setTipoF(tipoA === x.t ? "" : x.t)}>{x.t} · {x.n}</button>)}
+        </div>
+      )}
       <div className="kresumo">
         <span><b>{prontas} de {doMes.length}</b> artes de {mesAtual === d.mes ? "este mês" : "o mês"} entregues</span>
         <div className="kbar" aria-hidden="true"><div style={{ width: (doMes.length ? Math.round(prontas / doMes.length * 100) : 0) + "%" }} /></div>
@@ -98,7 +109,7 @@ export default function Minhas({ d }: { d: Dados }) {
                             {i.briefing && <div>{i.briefing}</div>}
                             {temArte(i) && <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setVer(i)}>ver o que foi entregue</button>}
                             {c?.responsavel_id === d.me.id
-                              ? <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setForm(i)}>Editar nome, data ou excluir</button>
+                              ? <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setForm(i)}>Editar nome, data, tipo ou excluir</button>
                               : <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setRenomear(i)}>Trocar o nome do post</button>}
                           </div>
                         )}
