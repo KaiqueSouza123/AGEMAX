@@ -6,8 +6,8 @@ function msgPessoa(d: Dados, p: Pessoa): string | null {
   const its = ordenar(d.itens.filter(i => i.responsavel_id === p.id && ["ATRASADO", "SEM LINK", "VENCE HOJE", "AJUSTES", "VENCE EM BREVE"].includes(alerta(i))));
   if (!its.length) return null;
   const linha = (i: any) => {
-    const a = alerta(i); const ic = a === "ATRASADO" ? "🔴" : a === "SEM LINK" ? "🔗" : a === "VENCE HOJE" || a === "AJUSTES" ? "🟠" : "🟡";
-    const txt = a === "ATRASADO" ? `atrasada desde ${fmt(prazoDe(i))}` : a === "SEM LINK" ? "entregue sem o link da arte" : a === "VENCE HOJE" ? "prazo é hoje" : a === "AJUSTES" ? "ajuste pedido pelo dono" : `prazo ${fmtw(prazoDe(i))}`;
+    const a = alerta(i); const ic = a === "ATRASADO" ? "🟠" : a === "SEM LINK" ? "🔗" : a === "VENCE HOJE" || a === "AJUSTES" ? "🟠" : "🟡";
+    const txt = a === "ATRASADO" ? `post ${fmtw(dt(i.data_post))} · entregue assim que puder` : a === "SEM LINK" ? "entregue sem o link da arte" : a === "VENCE HOJE" ? "prazo é hoje" : a === "AJUSTES" ? "ajuste pedido pelo dono" : `prazo ${fmtw(prazoDe(i))}`;
     return `${ic} *${d.cliente(i.cliente_id)?.nome}* · ${i.tema}\n   ${txt}`;
   };
   return `Bom dia, ${p.nome.split(" ")[0]}! Suas demandas de hoje:\n\n${its.slice(0, 6).map(linha).join("\n")}${its.length > 6 ? `\n…e mais ${its.length - 6}` : ""}\n\nTerminou? Entregue na plataforma com o link da arte. Se algo está travando, responde aqui.`;

@@ -22,7 +22,8 @@ function rotuloPrazo(i: Item): { txt: string; cls: string } {
   if (i.status === "Entregue") return { txt: i.entregue_em ? "entregue " + fmt(new Date(i.entregue_em)) : "entregue", cls: "pz-ok" };
   const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
   const verbo = i.status === "Ajustes" ? "refazer" : "arte";
-  if (a === "ATRASADO") return { txt: "atrasada · era " + fmt(p), cls: "pz-bad" };
+  // atraso só aparece para o dono: aqui mostramos apenas a data do post
+  if (a === "ATRASADO") return { txt: "post " + fmtw(dt(i.data_post)), cls: "" };
   if (iso(p) === iso(hoje)) return { txt: verbo + " HOJE", cls: "pz-warn" };
   if (iso(p) === iso(amanha)) return { txt: verbo + " até AMANHÃ", cls: "pz-warn" };
   if (a === "VENCE EM BREVE" || a === "AJUSTES") return { txt: verbo + " até " + fmtw(p), cls: "pz-gold" };
@@ -49,7 +50,6 @@ export default function Minhas({ d }: { d: Dados }) {
 
   const doMes = minhas.filter(i => noMes(i, mesAtual));
   const prontas = doMes.filter(i => ["Entregue", "Aprovado", "Postado"].includes(i.status) && temArte(i)).length;
-  const atrasadas = ativas.filter(i => alerta(i) === "ATRASADO").length;
   const p = placar(doMes);
 
 
@@ -69,7 +69,6 @@ export default function Minhas({ d }: { d: Dados }) {
       <div className="kresumo">
         <span><b>{prontas} de {doMes.length}</b> artes de {mesAtual === d.mes ? "este mês" : "o mês"} entregues</span>
         <div className="kbar" aria-hidden="true"><div style={{ width: (doMes.length ? Math.round(prontas / doMes.length * 100) : 0) + "%" }} /></div>
-        {atrasadas > 0 && <span className="pz-bad"><b>{atrasadas} atrasada{atrasadas > 1 ? "s" : ""}</b></span>}
         <span className="muted">pontualidade: <b>{p.pct === null ? "—" : p.pct + "%"}</b></span>
       </div>
 

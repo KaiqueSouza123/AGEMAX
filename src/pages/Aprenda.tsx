@@ -52,7 +52,6 @@ const MChips = () => (
     <span className="kprazo pz-gold">arte até qui 08/10</span>
     <span className="kprazo pz-warn">arte até AMANHÃ</span>
     <span className="kprazo pz-warn">arte HOJE</span>
-    <span className="kprazo pz-bad">atrasada · era 06/10</span>
   </div>
 );
 const MNav = ({ itens, ativo, badge }: { itens: string[]; ativo: number; badge?: number }) => (
@@ -73,8 +72,8 @@ const MBotoes = ({ itens, foco }: { itens: string[]; foco: number }) => (
 const MForm = ({ campos, foco }: { campos: string[]; foco: number }) => (
   <div className="mv-card">{campos.map((c, k) => <div key={k} className="mv-field"><span className="mv-mute">{c}</span><span className={"mv-input" + (k === foco ? " foco" : "")}>&nbsp;</span></div>)}</div>
 );
-const MKpis = () => (
-  <div className="mv-kpis"><span><b>92%</b>pontualidade</span><span className="bad"><b>2</b>atrasadas</span><span><b>5</b>p/ aprovar</span></div>
+const MKpis = ({ func }: { func?: boolean }) => (
+  <div className="mv-kpis"><span><b>92%</b>pontualidade</span>{func ? <span><b>6</b>entregues</span> : <span className="bad"><b>2</b>atrasadas</span>}<span><b>5</b>{func ? "a fazer" : "p/ aprovar"}</span></div>
 );
 const MMsg = () => (
   <div className="mv-msg">Bom dia, Douglas! Suas demandas de hoje:<br />🟠 <b>Adricom</b> · prazo é hoje<br />🟡 <b>Sand</b> · prazo qui 08/10</div>
@@ -99,7 +98,7 @@ const FUNC: Licao[] = [
     passos: [
       { v: <MNav itens={["Minhas demandas", "Calendários", "Meu desempenho", "Meus avisos", "Aprenda"]} ativo={0} />, t: <>No menu ficam suas 5 áreas. Você vai passar quase todo o tempo em <b>Minhas demandas</b>.</> },
       { v: <MCard titulo="Assistência técnica" prazo="arte até ter 13/10" botao="Entregar" pri />, t: <>Cada post do calendário do cliente vira um <b>cartão</b> para você produzir.</> },
-      { v: <MKpis />, t: <>Só <b>você e os donos</b> veem o seu quadro. Tudo atualiza sozinho, sem precisar recarregar a página.</> },
+      { v: <MKpis func />, t: <>Só <b>você e os donos</b> veem o seu quadro. Tudo atualiza sozinho, sem precisar recarregar a página.</> },
     ], praticar: ["minhas", "Abrir Minhas demandas"] },
   { id: "f2", titulo: "Seu quadro de demandas", sub: "As 3 colunas e o caminho da arte", min: 1,
     intro: "Cada arte anda da esquerda para a direita. Seu trabalho termina quando ela chega em Aguardando aprovação.",
@@ -114,12 +113,12 @@ const FUNC: Licao[] = [
       { v: <MArquivos />, t: <>Terminou? Clique em <b>Entregar</b> e anexe a <b>imagem ou o vídeo</b> (até 50 MB cada) ou cole o <b>link</b> do Drive/Canva. Pode usar os dois. No celular, escolha da galeria ou da câmera.</> },
       { v: <MEntrega />, t: <>Espere o envio terminar e clique em <b>Entregar</b>. A arte vai para Aguardando aprovação e o dono baixa direto da plataforma.</> },
     ], dica: <>Vídeo com mais de 50 MB? Envie pelo <b>link do Drive</b>.</>, praticar: ["minhas", "Entregar uma arte"] },
-  { id: "f4", titulo: "Prazos e cores", sub: "Dourado, HOJE e atrasada", min: 1,
+  { id: "f4", titulo: "Prazos e cores", sub: "Dourado, AMANHÃ e HOJE", min: 1,
     intro: "O prazo que importa para você é o da arte, não o dia do post.",
     passos: [
       { v: <MCard titulo="SSD: o upgrade" prazo="arte até qua 14/10" extra={<span className="mv-mute">post seg 19/10</span>} />, t: <>O prazo da arte é <b>3 dias úteis antes do post</b>. Sábado, domingo e feriado não contam.</> },
-      { v: <MChips />, t: <>Cinza: tranquilo. <b>Dourado</b>: está chegando. <b>AMANHÃ</b> e <b>HOJE</b>: prioridade. <b>Vermelho</b>: atrasou.</> },
-      { v: <MCard titulo="Dia do Professor" prazo="atrasada · era 06/10" pc="pz-bad" botao="Entregar" pri />, t: <>Atrasou? Entregue mesmo assim e avise o dono. A pontualidade do mês conta quantas saíram no prazo.</> },
+      { v: <MChips />, t: <>Cinza: tranquilo. <b>Dourado</b>: está chegando. <b>AMANHÃ</b> e <b>HOJE</b>: prioridade.</> },
+      { v: <MCard titulo="Dia do Professor" prazo="post qua 14/10" botao="Entregar" pri />, t: <>Passou do prazo da arte? O cartão mostra só a data do post. Entregue o quanto antes. A pontualidade do mês conta quantas saíram no prazo.</> },
     ] },
   { id: "f5", titulo: "Quando pedem ajuste", sub: "Refazer e reenviar", min: 1,
     intro: "Se o dono pedir mudança, a arte volta para você na coluna Ajustes pedidos.",
@@ -132,7 +131,7 @@ const FUNC: Licao[] = [
     intro: "Além do quadro, você tem três telas de apoio.",
     passos: [
       { v: <MCal />, t: <><b>Calendários</b>: o mês de cada cliente seu, no mesmo formato que o cliente recebe.</> },
-      { v: <MKpis />, t: <><b>Meu desempenho</b>: quantas artes você entregou no prazo no mês.</> },
+      { v: <MKpis func />, t: <><b>Meu desempenho</b>: quantas artes você entregou no prazo no mês.</> },
       { v: <MMsg />, t: <><b>Meus avisos</b>: o resumo do dia, igual ao que chega no WhatsApp.</> },
     ], praticar: ["calendarios", "Abrir Calendários"] },
   { id: "f7", beta: true, titulo: "Radar da Semana", sub: "Ideias de posts para seus clientes", min: 1,
