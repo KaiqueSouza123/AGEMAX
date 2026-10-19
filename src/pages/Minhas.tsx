@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Item, temArte, alerta, ordenar, placar, noMes, hojeSP, iso, dt, fmt, fmtw, prazoDe } from "../regras";
+import { Item, temArte, alerta, ordenar, placar, noMes, hojeSP, iso, dt, fmt, fmtw, prazoDe, areaDe, veTipo } from "../regras";
 import { Head, Modal, useBusy } from "../ui";
 import { EntregaForm, EntregaVer } from "./entrega";
 import { Renomear } from "./renomear";
@@ -41,7 +41,9 @@ export default function Minhas({ d }: { d: Dados }) {
   const meusClientes = d.clientes.filter(c => c.ativo && c.responsavel_id === d.me.id);
   const { run } = useBusy();
 
-  const minhas = d.itens.filter(i => i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente");
+  // só os tipos da função da pessoa (designer: sem vídeo · videomaker: sem imagem)
+  const area = areaDe(d.me.funcao);
+  const minhas = d.itens.filter(i => i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente" && veTipo(area, i.tipo));
   const mesAtual = iso(hojeSP()).slice(0, 7);
   // tudo que ainda está em andamento (de qualquer mês) + o que foi entregue e espera aprovação
   const ativas = ordenar(minhas.filter(i => !["Aprovado", "Postado"].includes(i.status)));

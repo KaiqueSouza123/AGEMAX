@@ -1,9 +1,9 @@
 import type { Dados } from "../App";
-import { Pessoa, alerta, dt, fmt, fmtw, hojeSP, ordenar, placar, prazoDe } from "../regras";
+import { Pessoa, alerta, dt, fmt, fmtw, hojeSP, ordenar, placar, prazoDe, areaDe, veTipo } from "../regras";
 import { Head } from "../ui";
 
 function msgPessoa(d: Dados, p: Pessoa): string | null {
-  const its = ordenar(d.itens.filter(i => i.responsavel_id === p.id && ["ATRASADO", "SEM LINK", "VENCE HOJE", "AJUSTES", "VENCE EM BREVE"].includes(alerta(i))));
+  const its = ordenar(d.itens.filter(i => i.responsavel_id === p.id && veTipo(areaDe(p.funcao), i.tipo) && ["ATRASADO", "SEM LINK", "VENCE HOJE", "AJUSTES", "VENCE EM BREVE"].includes(alerta(i))));
   if (!its.length) return null;
   const linha = (i: any) => {
     const a = alerta(i); const ic = a === "ATRASADO" ? "🟠" : a === "SEM LINK" ? "🔗" : a === "VENCE HOJE" || a === "AJUSTES" ? "🟠" : "🟡";

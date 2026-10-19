@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Item, TIPOS, STATUS, alerta, dt, fmtw, prazoDe, ehPrazoCliente, temArte } from "../regras";
+import { Item, TIPOS, STATUS, alerta, dt, fmtw, prazoDe, ehPrazoCliente, temArte, areaDe, veTipo } from "../regras";
 import { EntregaForm, EntregaVer } from "./entrega";
 export { EntregaForm };
 import { Chip, Modal, useBusy } from "../ui";
@@ -82,7 +82,7 @@ export function TabelaProducao({ d, its, comResp, onEditar }: { d: Dados; its: I
 export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | null; fechar: () => void }) {
   const novo = !item?.id;
   const func = !d.ehDono; // funcionário: só clientes dele; cria, apaga e muda nome/data
-  const [f, setF] = useState<Partial<Item>>(() => ({ tipo: "Estático", status: "A fazer", data_post: d.mes + "-01", ...item, ...(func && !item?.id ? { responsavel_id: d.me.id } : {}) }));
+  const [f, setF] = useState<Partial<Item>>(() => ({ tipo: !d.ehDono && areaDe(d.me.funcao) === "video" ? "Reels" : "Estático", status: "A fazer", data_post: d.mes + "-01", ...item, ...(func && !item?.id ? { responsavel_id: d.me.id } : {}) }));
   const { busy, err, run } = useBusy();
   const set = (k: keyof Item, v: any) => setF(x => ({ ...x, [k]: v }));
   const escolherCliente = (id: string) => setF(x => ({ ...x, cliente_id: id, responsavel_id: func ? d.me.id : (x.responsavel_id || d.cliente(id)?.responsavel_id || null) }));
@@ -118,7 +118,7 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
       </label>
       <label htmlFor="it-tema">Tema do post<input id="it-tema" required value={f.tema || ""} onChange={e => set("tema", e.target.value)} placeholder="Ex.: Black Friday: ofertas da semana" /></label>
       <div className="row2">
-        <label htmlFor="it-tipo">Tipo<select id="it-tipo" value={f.tipo} onChange={e => set("tipo", e.target.value)}>{TIPOS.filter(t => !func || t !== "Prazo do cliente").map(t => <option key={t}>{t}</option>)}</select></label>
+        <label htmlFor="it-tipo">Tipo<select id="it-tipo" value={f.tipo} onChange={e => set("tipo", e.target.value)}>{TIPOS.filter(t => !func || (t !== "Prazo do cliente" && (veTipo(areaDe(d.me.funcao), t) || t === f.tipo))).map(t => <option key={t}>{t}</option>)}</select></label>
         <label htmlFor="it-data">Data do post<input id="it-data" type="date" required value={f.data_post || ""} onChange={e => set("data_post", e.target.value)} /></label>
       </div>
       {!func && f.data_post && f.tipo !== "Prazo do cliente" && !["Entregue", "Aprovado", "Postado"].includes(f.status || "") && (() => {

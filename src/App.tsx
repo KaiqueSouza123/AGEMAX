@@ -161,7 +161,7 @@ export default function App() {
 
   const nPend = ehDono
     ? itens.filter(i => ["ATRASADO", "SEM LINK"].includes(alerta(i))).length
-    : itens.filter(i => i.responsavel_id === me.id && ["ATRASADO", "SEM LINK", "VENCE HOJE", "AJUSTES"].includes(alerta(i))).length;
+    : itens.filter(i => i.responsavel_id === me.id && veTipo(areaDe(me.funcao), i.tipo) && ["ATRASADO", "SEM LINK", "VENCE HOJE", "AJUSTES"].includes(alerta(i))).length;
 
   // ideias novas do radar publicado mais recente (para o funcionário)
   const ultimo = semanas.find(s => s.publicado_em);
