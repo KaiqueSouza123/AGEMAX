@@ -198,7 +198,7 @@ const DONO: Licao[] = [
 
 const FAQ_FUNC = [
   ["Qual é o meu prazo?", "O prazo da arte é 3 dias úteis antes do post ir ao ar. Fim de semana e feriado não contam."],
-  ["Enviei o arquivo errado. E agora?", "Antes de entregar, é só remover na lista. Depois de entregue, peça ao dono para devolver em ajuste e reenvie o certo."],
+  ["Enviei o arquivo errado. E agora?", "Clique em Trocar ao lado do arquivo e escolha o certo: ele fica no mesmo lugar e com a mesma legenda. Já entregou? No cartão, clique em trocar arquivos. Depois que o dono aprovar, só ele pode mudar."],
   ["Meu vídeo não sobe.", "O limite é 50 MB por arquivo. Para vídeos maiores, salve no Drive e entregue pelo link."],
   ["Não aparece nenhuma arte para mim.", "Os posts do mês ainda não foram lançados ou o cliente não está com você. Fale com o dono."],
   ["Posso criar, mudar a data ou apagar um post?", "Sim, nos clientes que são seus. Em Minhas demandas use + Novo post, ou abra um post e clique em Editar nome, data ou excluir. Em Calendários, escolha seu cliente e clique em Editar para arrastar posts de dia. Só dá para excluir post que ainda não foi entregue."],

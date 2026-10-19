@@ -118,7 +118,7 @@ export default function Minhas({ d }: { d: Dados }) {
                           {(i.status === "A fazer" || i.status === "Em produção") && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Entregar</button>}
                           {i.status === "Ajustes" && <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Reenviar</button>}
                           {i.status === "Entregue" && (temArte(i)
-                            ? <button type="button" className="btn sm" onClick={() => setVer(i)}>Ver arte</button>
+                            ? <span className="kbtns"><button type="button" className="kja" onClick={() => setEntregar(i)}>trocar arquivos</button><button type="button" className="btn sm" onClick={() => setVer(i)}>Ver arte</button></span>
                             : <button type="button" className="btn pri sm" onClick={() => setEntregar(i)}>Entregar</button>)}
                         </div>
                       </article>

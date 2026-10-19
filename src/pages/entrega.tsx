@@ -47,7 +47,9 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
   const [legenda, setLegenda] = useState(i.legenda || "");
   const [legs, setLegs] = useState<Record<string, string>>({});
   const { busy, err, setErr, run } = useBusy();
-  const galeria = useRef<HTMLInputElement>(null), camera = useRef<HTMLInputElement>(null);
+  const galeria = useRef<HTMLInputElement>(null), camera = useRef<HTMLInputElement>(null), troca = useRef<HTMLInputElement>(null);
+  const [trocando, setTrocando] = useState<{ id: string; p: number; erro?: string } | null>(null);
+  const alvoTroca = useRef<Arquivo | null>(null);
 
   useEffect(() => { listarArquivos(i.id).then(a => { const v = a.filter(x => !x.removido_em); setAntigos(v); setLegs(Object.fromEntries(v.map(x => [x.id, x.legenda || ""]))); }); }, [i.id]);
   const atualizar = (chave: string, p: Partial<Envio>) => setEnvios(l => l.map(e => e.chave === chave ? { ...e, ...p } : e));
@@ -74,13 +76,44 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
     }
   };
 
+  // troca um arquivo já enviado por outro, mantendo a posição e a legenda
+  const trocar = async (arq: File | undefined) => {
+    const velho = alvoTroca.current; alvoTroca.current = null;
+    if (!arq || !velho) return;
+    setErr(null);
+    if (!/^(image|video)\//.test(arq.type)) { setErr("Só imagem ou vídeo."); return; }
+    if (arq.size > MAX) { setErr("Passa de 50 MB. Envie pelo link do Drive."); return; }
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) { setErr("Sua sessão expirou. Entre de novo."); return; }
+    setTrocando({ id: velho.id, p: 0 });
+    const caminho = `${i.id}/${Date.now()}-${nomeSeguro(arq.name)}`;
+    try {
+      await enviar(caminho, arq, token, p => setTrocando({ id: velho.id, p }));
+      const r = await supabase.from("entrega_arquivos").insert({ item_id: i.id, caminho, nome: arq.name, tipo: arq.type, tamanho: arq.size, enviado_por: d.me.id }).select("*").single();
+      if (r.error) { await supabase.storage.from(BUCKET).remove([caminho]); throw new Error(r.error.message); }
+      const novo = r.data as Arquivo;
+      await supabase.storage.from(BUCKET).remove([velho.caminho]);
+      await supabase.from("entrega_arquivos").delete().eq("id", velho.id);
+      setLegs(x => ({ ...x, [novo.id]: x[velho.id] || "" }));
+      setAntigos(l => l.map(x => x.id === velho.id ? novo : x));
+      setEnvios(l => l.map(e => e.feito?.id === velho.id ? { ...e, feito: novo, nome: novo.nome, tamanho: novo.tamanho, tipo: novo.tipo || "" } : e));
+      setTrocando(null);
+      d.aviso("Arquivo trocado");
+    } catch (e: any) { setTrocando({ id: velho.id, p: 0, erro: e.message || "Falhou a troca." }); }
+  };
+  const pedirTroca = (a: Arquivo) => { alvoTroca.current = a; troca.current?.click(); };
+  const botTroca = (a: Arquivo) => trocando?.id === a.id && !trocando.erro
+    ? <small className="muted">trocando · {Math.round(trocando.p * 100)}%</small>
+    : <button type="button" className="btn sm" disabled={!!trocando && !trocando.erro} onClick={() => pedirTroca(a)} aria-label={"Trocar " + a.nome}>Trocar</button>;
+
   const tirar = async (a: Arquivo, chave?: string) => {
     await supabase.storage.from(BUCKET).remove([a.caminho]);
     await supabase.from("entrega_arquivos").delete().eq("id", a.id);
     if (chave) setEnvios(l => l.filter(e => e.chave !== chave)); else setAntigos(l => l.filter(x => x.id !== a.id));
   };
 
-  const enviando = envios.some(e => !e.erro && !e.feito);
+  const enviando = envios.some(e => !e.erro && !e.feito) || (!!trocando && !trocando.erro);
   const novos = envios.filter(e => e.feito).length;
   const temAlgo = novos + antigos.length > 0 || !!link.trim();
 
@@ -108,14 +141,14 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
       }
       return supabase.from("itens").update({ status: "Entregue", link: l || null, legenda: legenda.trim() || null }).eq("id", i.id) as any;
     });
-    if (ok) { fechar(); d.aviso("Entregue. Agora é com o dono."); d.recarregar(); }
+    if (ok) { fechar(); d.aviso(i.status === "Entregue" ? "Entrega atualizada. O dono já vê os arquivos novos." : "Entregue. Agora é com o dono."); d.recarregar(); }
   };
 
   return (
     <div className="form ent">
       <span className="ent-pega" aria-hidden="true" />
       <div>
-        <h2>{i.status === "Ajustes" ? "Reenviar arte" : "Entregar arte"}</h2>
+        <h2>{i.status === "Ajustes" ? "Reenviar arte" : i.status === "Entregue" ? "Trocar arquivos da entrega" : "Entregar arte"}</h2>
         <p className="muted" style={{ margin: 0 }}>{d.cliente(i.cliente_id)?.nome} · {i.tema}</p>
       </div>
       <div className="ent-abas" role="tablist" aria-label="Como entregar">
@@ -126,6 +159,7 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
       {modo === "arq" ? (
         <div className="ent-arq">
           <input ref={galeria} type="file" accept="image/*,video/*" multiple className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => { const fs = Array.from(e.target.files || []); e.target.value = ""; escolher(fs); }} />
+          <input ref={troca} type="file" accept="image/*,video/*" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; trocar(f); }} />
           <input ref={camera} type="file" accept="image/*,video/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => { const fs = Array.from(e.target.files || []); e.target.value = ""; escolher(fs); }} />
           <button type="button" className={"ent-drop" + (arrastando ? " on" : "")} onClick={() => galeria.current?.click()}
             onDragOver={e => { e.preventDefault(); setArrastando(true); }} onDragLeave={() => setArrastando(false)}
@@ -142,7 +176,8 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
             <ul className="ent-lista">
               {antigos.map(a => (
                 <li key={a.id}><div className="ent-li"><span className={"ent-ic" + (ehVideo(a) ? " v" : "")}>{ext(a.nome)}</span>
-                  <span className="ent-n"><b>{a.nome}</b><small className="ok-t">já enviado · {tamanho(a.tamanho)}</small></span>
+                  <span className="ent-n"><b>{a.nome}</b>{trocando?.id === a.id && trocando.erro ? <small className="bad-t">{trocando.erro}</small> : <small className="ok-t">já enviado · {tamanho(a.tamanho)}</small>}</span>
+                  {botTroca(a)}
                   <button type="button" className="ent-x" aria-label={"Remover " + a.nome} onClick={() => tirar(a)}>✕</button></div>
                   {variosArq && legArq(a, antigos.indexOf(a) + 1)}</li>
               ))}
@@ -153,6 +188,7 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
                       : e.feito ? <small className="ok-t">enviado · {tamanho(e.tamanho)}</small>
                       : <><span className="ent-bar"><span style={{ width: Math.round(e.p * 100) + "%" }} /></span><small>enviando · {Math.round(e.p * 100)}% de {tamanho(e.tamanho)}</small></>}
                   </span>
+                  {e.feito && botTroca(e.feito)}
                   {(e.feito || e.erro) && <button type="button" className="ent-x" aria-label={"Remover " + e.nome} onClick={() => e.feito ? tirar(e.feito, e.chave) : setEnvios(l => l.filter(x => x.chave !== e.chave))}>✕</button>}
                   </div>
                   {variosArq && e.feito && legArq(e.feito, antigos.length + envios.filter(x => x.feito).indexOf(e) + 1)}
@@ -181,7 +217,7 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
       <div className="acts ent-acts">
         <span className="muted">{enviando ? "Espere o envio terminar…" : temAlgo ? "" : "Precisa de pelo menos 1 arquivo ou 1 link."}</span>
         <button type="button" className="btn" onClick={fechar}>Cancelar</button>
-        <button type="button" className="btn gold" disabled={busy || enviando} onClick={entregar}>{i.status === "Ajustes" ? "Reenviar" : "Entregar"}</button>
+        <button type="button" className="btn gold" disabled={busy || enviando} onClick={entregar}>{i.status === "Ajustes" ? "Reenviar" : i.status === "Entregue" ? "Salvar" : "Entregar"}</button>
       </div>
     </div>
   );
