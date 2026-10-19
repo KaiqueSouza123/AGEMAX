@@ -91,7 +91,7 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
 
   const salvar = async (e: FormEvent) => {
     e.preventDefault();
-    const dados: any = func && !novo ? { tema: f.tema, data_post: f.data_post } : func ? { cliente_id: f.cliente_id, tema: f.tema, tipo: f.tipo, data_post: f.data_post, responsavel_id: d.me.id, briefing: f.briefing || null, status: "A fazer" } : { cliente_id: f.cliente_id, tema: f.tema, tipo: f.tipo, data_post: f.data_post, responsavel_id: f.tipo === "Prazo do cliente" ? null : (f.responsavel_id || null), briefing: f.briefing || null, objetivo: f.objetivo || null, status: f.status, link: f.link || null };
+    const dados: any = func && !novo ? { tema: f.tema, data_post: f.data_post, briefing: f.briefing || null } : func ? { cliente_id: f.cliente_id, tema: f.tema, tipo: f.tipo, data_post: f.data_post, responsavel_id: d.me.id, briefing: f.briefing || null, status: "A fazer" } : { cliente_id: f.cliente_id, tema: f.tema, tipo: f.tipo, data_post: f.data_post, responsavel_id: f.tipo === "Prazo do cliente" ? null : (f.responsavel_id || null), briefing: f.briefing || null, objetivo: f.objetivo || null, status: f.status, link: f.link || null };
     const ok = await run(() => (novo ? supabase.from("itens").insert(dados) : supabase.from("itens").update(dados).eq("id", item!.id)) as any);
     if (ok) { fechar(); d.aviso(novo ? "Post criado" : "Post atualizado"); d.recarregar(); }
   };
@@ -121,6 +121,13 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
         <label htmlFor="it-tipo">Tipo<select id="it-tipo" disabled={func && !novo} value={f.tipo} onChange={e => set("tipo", e.target.value)}>{TIPOS.filter(t => !func || t !== "Prazo do cliente").map(t => <option key={t}>{t}</option>)}</select></label>
         <label htmlFor="it-data">Data do post<input id="it-data" type="date" required value={f.data_post || ""} onChange={e => set("data_post", e.target.value)} /></label>
       </div>
+      {f.data_post && f.tipo !== "Prazo do cliente" && !["Entregue", "Aprovado", "Postado"].includes(f.status || "") && (() => {
+        const pz = prazoDe({ ...(f as Item) }), hojeD = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) + "T12:00:00");
+        const passou = pz < hojeD;
+        return <p className={"pz-aviso" + (passou ? " pz-bad" : "")} style={{ margin: 0, fontSize: 13 }}>
+          Prazo da arte: <b>{fmtw(pz)}</b> (3 dias úteis antes do post).{passou && " Esse prazo já passou, então o post vai aparecer como atrasado. Para não ficar atrasado, escolha uma data mais para frente ou entregue a arte."}
+        </p>;
+      })()}
       {!func && f.tipo !== "Prazo do cliente" && (
         <div className="row2">
           <label htmlFor="it-resp">Responsável<select id="it-resp" value={f.responsavel_id || ""} onChange={e => set("responsavel_id", e.target.value || null)}>
@@ -129,10 +136,10 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
           <label htmlFor="it-status">Status<select id="it-status" value={f.status} onChange={e => set("status", e.target.value)}>{STATUS.map(s => <option key={s}>{s}</option>)}</select></label>
         </div>
       )}
-      <label htmlFor="it-brief">Briefing para quem vai produzir<textarea id="it-brief" disabled={func && !novo} value={f.briefing || ""} onChange={e => set("briefing", e.target.value)} placeholder="O que mostrar, referências, o que confirmar com o cliente" /></label>
+      <label htmlFor="it-brief">Briefing para quem vai produzir<textarea id="it-brief" value={f.briefing || ""} onChange={e => set("briefing", e.target.value)} placeholder="O que mostrar, referências, o que confirmar com o cliente" /></label>
       {err && <div className="err">{err}</div>}
       <div className="acts">
-        {func && !novo && <p className="muted" style={{ margin: 0, fontSize: 13, flexBasis: "100%" }}>Você pode mudar o nome e a data. Tipo e briefing ficam com o dono.</p>}
+        {func && !novo && <p className="muted" style={{ margin: 0, fontSize: 13, flexBasis: "100%" }}>Você pode mudar o nome, a data e o briefing. Tipo e responsável ficam com o dono.</p>}
         {!novo && podeApagar && (confirmar
           ? <button type="button" className="btn danger" onClick={apagar} disabled={busy}>Confirmar exclusão</button>
           : <button type="button" className="btn danger" onClick={() => setConfirmar(true)}>Excluir</button>)}
