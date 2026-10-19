@@ -484,7 +484,7 @@ dialog:has(.ev){width:min(920px,94vw);max-height:92vh;padding:22px}
 .ev-tit h2{margin:2px 0 0;font-family:var(--display);font-size:21px;line-height:1.25}
 .ev-tudo{white-space:nowrap;min-height:40px}
 .ev-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-.ev-grade figure{margin:0;display:grid;gap:8px}
+.ev-grade figure{margin:0;display:grid;gap:8px;align-content:start}
 .ev-prev{aspect-ratio:4/5;max-height:360px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;padding:0}
 .ev-prev img,.ev-prev video{width:100%;height:100%;object-fit:contain;background:#000}
 .ev-prev .muted{padding:12px}
@@ -706,3 +706,17 @@ dialog:has(.pf){width:min(520px,94vw)}
 .hs-k{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);min-width:90px;padding-top:2px}
 .hs-a{text-decoration:line-through;color:var(--mute)} .hs-d{font-weight:700}
 @media (max-width:700px){.hs-it{grid-template-columns:30px 1fr;padding:12px}.hs-h{grid-column:2;grid-row:1;padding:0}.hs-av{grid-row:1/3}.hs-txt{grid-column:2}.hs-filtros select{flex:1 1 140px}}
+
+/* ===== legendas ===== */
+.ent-lista{max-height:none}
+.ent-lista li{flex-direction:column;align-items:stretch}
+.ent-li{display:flex;align-items:center;gap:12px;min-width:0}
+.ent-leg{display:grid;gap:6px;font-weight:700;font-size:13px}
+.ent-leg textarea{font:inherit;font-weight:400;font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical;min-height:44px;width:100%;box-sizing:border-box}
+.ent-leg-post textarea{min-height:90px}
+.ent-leg small{font-weight:400}
+.ev-leg{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px}
+.ev-leg.grande{border-left:3px solid var(--gold)}
+.ev-leg-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ev-leg-top span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.ev-leg p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.45}

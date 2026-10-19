@@ -4,7 +4,7 @@ import type { Dados } from "../App";
 import { Item, dt, fmtw, temArte } from "../regras";
 import { useBusy } from "../ui";
 
-export type Arquivo = { id: string; item_id: number; caminho: string; nome: string; tipo: string | null; tamanho: number; criado_em: string; removido_em: string | null };
+export type Arquivo = { id: string; item_id: number; caminho: string; nome: string; tipo: string | null; tamanho: number; criado_em: string; removido_em: string | null; legenda?: string | null; ordem?: number | null };
 const MAX = 50 * 1024 * 1024;
 const BUCKET = "entregas";
 
@@ -15,7 +15,8 @@ const nomeSeguro = (n: string) => n.normalize("NFD").replace(/[̀-ͯ]/g, "").rep
 
 export async function listarArquivos(itemId: number): Promise<Arquivo[]> {
   const r = await supabase.from("entrega_arquivos").select("*").eq("item_id", itemId).order("criado_em");
-  return (r.data || []) as Arquivo[];
+  // ordem escolhida na entrega (1, 2, 3…); sem ordem, pela hora do envio
+  return ((r.data || []) as Arquivo[]).sort((a, b) => (a.ordem ?? 1e9) - (b.ordem ?? 1e9) || a.criado_em.localeCompare(b.criado_em));
 }
 
 // envio com barra de progresso (a biblioteca do Supabase não informa o progresso)
@@ -43,10 +44,12 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
   const [antigos, setAntigos] = useState<Arquivo[]>([]);
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [arrastando, setArrastando] = useState(false);
+  const [legenda, setLegenda] = useState(i.legenda || "");
+  const [legs, setLegs] = useState<Record<string, string>>({});
   const { busy, err, setErr, run } = useBusy();
   const galeria = useRef<HTMLInputElement>(null), camera = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { listarArquivos(i.id).then(a => setAntigos(a.filter(x => !x.removido_em))); }, [i.id]);
+  useEffect(() => { listarArquivos(i.id).then(a => { const v = a.filter(x => !x.removido_em); setAntigos(v); setLegs(Object.fromEntries(v.map(x => [x.id, x.legenda || ""]))); }); }, [i.id]);
   const atualizar = (chave: string, p: Partial<Envio>) => setEnvios(l => l.map(e => e.chave === chave ? { ...e, ...p } : e));
 
   const escolher = async (lista: File[]) => {
@@ -81,12 +84,30 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
   const novos = envios.filter(e => e.feito).length;
   const temAlgo = novos + antigos.length > 0 || !!link.trim();
 
+  const variosArq = novos + antigos.length > 1;
+  const legArq = (a: Arquivo, n: number) => (
+    <label className="ent-leg">Legenda da imagem {n}
+      <textarea rows={2} value={legs[a.id] || ""} onChange={ev => setLegs(x => ({ ...x, [a.id]: ev.target.value }))} placeholder="Se esta imagem for um post separado, escreva a legenda dela aqui (opcional)" />
+    </label>
+  );
+
   const entregar = async () => {
     if (enviando) return;
     if (!temAlgo) { setErr("Anexe a imagem ou o vídeo, ou cole o link da arte."); return; }
     const l = link.trim();
     if (l && !/^https?:\/\//i.test(l)) { setErr("O link precisa começar com https://"); return; }
-    const ok = await run(() => supabase.from("itens").update({ status: "Entregue", link: l || null }).eq("id", i.id) as any);
+    const ok = await run(async () => {
+      // legenda de cada arquivo e a ordem em que aparecem (carrossel)
+      const arqs = [...antigos, ...envios.filter(e => e.feito).map(e => e.feito!)];
+      for (let k = 0; k < arqs.length; k++) {
+        const a = arqs[k], nova = (legs[a.id] || "").trim() || null;
+        if (nova !== (a.legenda || null) || a.ordem !== k + 1) {
+          const r = await supabase.from("entrega_arquivos").update({ legenda: nova, ordem: k + 1 }).eq("id", a.id);
+          if (r.error) return r;
+        }
+      }
+      return supabase.from("itens").update({ status: "Entregue", link: l || null, legenda: legenda.trim() || null }).eq("id", i.id) as any;
+    });
     if (ok) { fechar(); d.aviso("Entregue. Agora é com o dono."); d.recarregar(); }
   };
 
@@ -120,18 +141,21 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
           {(antigos.length > 0 || envios.length > 0) && (
             <ul className="ent-lista">
               {antigos.map(a => (
-                <li key={a.id}><span className={"ent-ic" + (ehVideo(a) ? " v" : "")}>{ext(a.nome)}</span>
+                <li key={a.id}><div className="ent-li"><span className={"ent-ic" + (ehVideo(a) ? " v" : "")}>{ext(a.nome)}</span>
                   <span className="ent-n"><b>{a.nome}</b><small className="ok-t">já enviado · {tamanho(a.tamanho)}</small></span>
-                  <button type="button" className="ent-x" aria-label={"Remover " + a.nome} onClick={() => tirar(a)}>✕</button></li>
+                  <button type="button" className="ent-x" aria-label={"Remover " + a.nome} onClick={() => tirar(a)}>✕</button></div>
+                  {variosArq && legArq(a, antigos.indexOf(a) + 1)}</li>
               ))}
               {envios.map(e => (
-                <li key={e.chave}><span className={"ent-ic" + (e.tipo.startsWith("video") ? " v" : "")}>{ext(e.nome)}</span>
+                <li key={e.chave}><div className="ent-li"><span className={"ent-ic" + (e.tipo.startsWith("video") ? " v" : "")}>{ext(e.nome)}</span>
                   <span className="ent-n"><b>{e.nome}</b>
                     {e.erro ? <small className="bad-t">{e.erro}</small>
                       : e.feito ? <small className="ok-t">enviado · {tamanho(e.tamanho)}</small>
                       : <><span className="ent-bar"><span style={{ width: Math.round(e.p * 100) + "%" }} /></span><small>enviando · {Math.round(e.p * 100)}% de {tamanho(e.tamanho)}</small></>}
                   </span>
                   {(e.feito || e.erro) && <button type="button" className="ent-x" aria-label={"Remover " + e.nome} onClick={() => e.feito ? tirar(e.feito, e.chave) : setEnvios(l => l.filter(x => x.chave !== e.chave))}>✕</button>}
+                  </div>
+                  {variosArq && e.feito && legArq(e.feito, antigos.length + envios.filter(x => x.feito).indexOf(e) + 1)}
                 </li>
               ))}
             </ul>
@@ -147,6 +171,11 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
           <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setModo("arq")}>{novos + antigos.length ? `${novos + antigos.length} arquivo(s) anexado(s)` : "+ Também enviar o arquivo (opcional)"}</button>
         </div>
       )}
+
+      <label className="ent-leg ent-leg-post" htmlFor="ent-legenda">Legenda do Instagram
+        <textarea id="ent-legenda" rows={4} value={legenda} onChange={e => setLegenda(e.target.value)} placeholder="O texto que vai junto do post, com hashtags e emojis" />
+        <small className="muted">{variosArq ? "Carrossel: esta é a legenda do post. Se cada imagem for um post separado, use a legenda de cada uma acima." : "Opcional. O dono copia direto na hora de postar."}{legenda.length > 0 && ` · ${legenda.length}/2200`}</small>
+      </label>
 
       {err && <div className="err">{err}</div>}
       <div className="acts ent-acts">
@@ -213,13 +242,15 @@ export function EntregaVer({ d, i, fechar, aprovar, ajuste }: { d: Dados; i: Ite
                       : <img src={a.url} alt={a.nome} loading="lazy" />}
                   </div>
                   <figcaption>
-                    <span><b>{a.nome}</b><small className="muted">{ext(a.nome)} · {tamanho(a.tamanho)}</small></span>
+                    <span><b>{arqs.length > 1 ? (arqs.indexOf(a) + 1) + ". " : ""}{a.nome}</b><small className="muted">{ext(a.nome)} · {tamanho(a.tamanho)}</small></span>
                     {!a.removido_em && <button type="button" className="btn sm" onClick={() => baixar(a)}>Baixar</button>}
                   </figcaption>
+                  {a.legenda && <Legenda texto={a.legenda} rotulo={"Legenda da imagem " + (arqs.indexOf(a) + 1)} d={d} />}
                 </figure>
               ))}
             </div>
           )}
+          {i.legenda && <Legenda texto={i.legenda} rotulo="Legenda do Instagram" d={d} grande />}
           {i.link && <a className="ev-link" href={i.link} target="_blank" rel="noopener noreferrer">Abrir o link da arte ↗</a>}
         </>
       )}
@@ -231,6 +262,16 @@ export function EntregaVer({ d, i, fechar, aprovar, ajuste }: { d: Dados; i: Ite
         </div>
       )}
       {!temArte(i) && <p className="muted" style={{ margin: 0 }}>Sem arquivo e sem link.</p>}
+    </div>
+  );
+}
+
+function Legenda({ texto, rotulo, d, grande }: { texto: string; rotulo: string; d: Dados; grande?: boolean }) {
+  const copiar = async () => { try { await navigator.clipboard.writeText(texto); d.aviso("Legenda copiada"); } catch { d.aviso("Não consegui copiar. Selecione o texto e copie."); } };
+  return (
+    <div className={"ev-leg" + (grande ? " grande" : "")}>
+      <div className="ev-leg-top"><span>{rotulo}</span><button type="button" className="btn sm" onClick={copiar}>Copiar</button></div>
+      <p>{texto}</p>
     </div>
   );
 }

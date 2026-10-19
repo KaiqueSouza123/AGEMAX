@@ -11,7 +11,7 @@ export type Cliente = {
 export type Item = {
   id: number; cliente_id: string; tema: string; tipo: string; data_post: string;
   responsavel_id: string | null; status: string; link: string | null; entregue_em: string | null;
-  briefing: string | null; objetivo: string | null; n_arquivos?: number;
+  briefing: string | null; objetivo: string | null; n_arquivos?: number; legenda?: string | null;
 };
 // a arte conta como entregue com link OU com arquivo anexado
 export const temArte = (i: Item) => !!(i.link && i.link.trim()) || (i.n_arquivos || 0) > 0;

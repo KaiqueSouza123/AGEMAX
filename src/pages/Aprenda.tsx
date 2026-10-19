@@ -203,6 +203,7 @@ const FAQ_FUNC = [
   ["Não aparece nenhuma arte para mim.", "Os posts do mês ainda não foram lançados ou o cliente não está com você. Fale com o dono."],
   ["Posso criar, mudar a data ou apagar um post?", "Sim, nos clientes que são seus. Em Minhas demandas use + Novo post, ou abra um post e clique em Editar nome, data ou excluir. Em Calendários, escolha seu cliente e clique em Editar para arrastar posts de dia. Só dá para excluir post que ainda não foi entregue."],
   ["Onde fica a pasta do Drive do cliente?", "Na aba Links. Lá ficam as pastas e links de cada cliente. Se faltar um ou estiver errado, clique em + link ou Editar: todo mundo pode corrigir."],
+  ["Onde coloco a legenda do post?", "Na tela de entregar, no campo Legenda do Instagram. Em carrossel ou vários posts juntos, cada imagem ganha a própria legenda. O dono copia direto de lá na hora de postar."],
   ["Quem vê as minhas entregas?", "Você e os donos da Agemax. Os outros funcionários não veem o seu quadro."],
 ];
 const FAQ_DONO = [
