@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Pessoa, noMes, placar } from "../regras";
+import { Pessoa, noMes, placar, areaDe } from "../regras";
 import { Head, Modal, useBusy } from "../ui";
 
 export default function Equipe({ d }: { d: Dados }) {
@@ -54,7 +54,8 @@ function PessoaForm({ d, p, fechar }: { d: Dados; p: Partial<Pessoa> | null; fec
       <h2>{p?.id ? "Editar pessoa" : "Nova pessoa"}</h2>
       <div className="row2">
         <label htmlFor="pe-nome">Nome<input id="pe-nome" required value={f.nome || ""} onChange={e => set("nome", e.target.value)} /></label>
-        <label htmlFor="pe-funcao">Função<input id="pe-funcao" value={f.funcao || ""} onChange={e => set("funcao", e.target.value)} placeholder="Designer, videomaker…" /></label>
+        <label htmlFor="pe-funcao">Função<input id="pe-funcao" value={f.funcao || ""} onChange={e => set("funcao", e.target.value)} placeholder="Designer, videomaker…" />
+          <small className="muted" style={{ fontWeight: 400 }}>{areaDe(f.funcao) === "imagem" ? "Designer: no calendário e no Radar não aparecem Reels e vídeos." : areaDe(f.funcao) === "video" ? "Vídeo: no calendário e no Radar não aparecem posts de imagem (estático e carrossel)." : "Vê todos os tipos de post. Escreva Designer ou Videomaker para filtrar."}</small></label>
       </div>
       <label htmlFor="pe-email">E-mail (é o login da pessoa)<input id="pe-email" type="email" value={f.email || ""} onChange={e => set("email", e.target.value)} disabled={!!p?.user_id} /></label>
       {p?.user_id && <p className="muted" style={{ margin: 0 }}>O e-mail não muda depois que a pessoa já criou o acesso.</p>}

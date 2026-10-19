@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import { Cliente, Item, Pessoa, RadarIdeia, RadarSemana, alerta, hojeSP, iso, setFeriados, fmtw } from "./regras";
+import { Cliente, Item, Pessoa, RadarIdeia, RadarSemana, alerta, areaDe, hojeSP, iso, setFeriados, fmtw, veTipo } from "./regras";
 import Login, { NovaSenha } from "./pages/Login";
 import Painel from "./pages/Painel";
 import Producao from "./pages/Producao";
@@ -165,7 +165,7 @@ export default function App() {
 
   // ideias novas do radar publicado mais recente (para o funcionário)
   const ultimo = semanas.find(s => s.publicado_em);
-  const nRadar = ehDono || !ultimo ? 0 : ideias.filter(x => x.semana_id === ultimo.id && !x.visto_em && x.estado === "nova").length;
+  const nRadar = ehDono || !ultimo ? 0 : ideias.filter(x => x.semana_id === ultimo.id && !x.visto_em && x.estado === "nova" && veTipo(areaDe(me.funcao), x.formato)).length;
 
   const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda, radar: Radar, links: Links, historico: Historico }[atual];
 

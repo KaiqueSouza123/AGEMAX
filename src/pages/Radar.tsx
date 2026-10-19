@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Item, RadarIdeia, RadarSemana, dt, ehTrend, fmt, fmtw, hojeSP, iso, prazoDe } from "../regras";
+import { Item, RadarIdeia, RadarSemana, dt, ehTrend, fmt, fmtw, hojeSP, iso, prazoDe, areaDe, veTipo } from "../regras";
 import { Head, Modal, useBusy } from "../ui";
 
 const FORMATOS = ["Estático", "Carrossel", "Reels", "Stories", "Vídeo"];
@@ -39,7 +39,8 @@ function RadarFunc({ d }: { d: Dados }) {
   const { run } = useBusy();
 
   const meusCli = d.clientes.filter(c => c.ativo && c.responsavel_id === d.me.id);
-  const ideias = sem ? d.ideias.filter(x => x.semana_id === sem.id && meusCli.some(c => c.id === x.cliente_id)) : [];
+  const area = areaDe(d.me.funcao);
+  const ideias = sem ? d.ideias.filter(x => x.semana_id === sem.id && meusCli.some(c => c.id === x.cliente_id) && veTipo(area, x.formato)) : [];
   const hoje = iso(hojeSP());
   const meusAbertos = d.itens.filter(i => i.responsavel_id === d.me.id && ABERTO.includes(i.status) && i.data_post >= hoje);
   const proxTrend = (cliId: string) => meusAbertos.filter(i => i.cliente_id === cliId && ehTrend(i)).sort((a, b) => a.data_post.localeCompare(b.data_post))[0];

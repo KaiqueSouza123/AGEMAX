@@ -99,3 +99,17 @@ export function placar(its: Item[]) {
 
 export function noMes(i: Item, mes: string) { return i.data_post.slice(0, 7) === mes; }
 export function mesLabel(mes: string) { const [a, m] = mes.split("-"); return `${MESES[+m - 1]} de ${a}`; }
+
+/* ===== o que cada função vê (calendário e Radar) =====
+   designer: não vê vídeo · videomaker/editor de vídeo: não vê post de imagem · o resto vê tudo.
+   Stories e prazos do cliente aparecem para todos. */
+export type Area = "tudo" | "imagem" | "video";
+const T_VIDEO = ["Reels", "Vídeo"], T_IMAGEM = ["Estático", "Carrossel"];
+export function areaDe(funcao: string | null | undefined, dono = false): Area {
+  if (dono) return "tudo";
+  const f = (funcao || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const video = /video|filmmaker|editor|edicao|motion|reels/.test(f), design = /design/.test(f);
+  return video && !design ? "video" : design && !video ? "imagem" : "tudo";
+}
+export const veTipo = (area: Area, tipo: string) =>
+  area === "tudo" || tipo === "Stories" || tipo === "Prazo do cliente" || (area === "imagem" ? !T_VIDEO.includes(tipo) : !T_IMAGEM.includes(tipo));

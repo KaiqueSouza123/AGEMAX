@@ -2,7 +2,7 @@ import type React from "react";
 import { useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Item, iso, mesLabel, noMes } from "../regras";
+import { Item, areaDe, iso, mesLabel, noMes, veTipo } from "../regras";
 import { Head, MesNav, Modal } from "../ui";
 import { ItemForm } from "./tabela";
 import { Renomear } from "./renomear";
@@ -25,7 +25,8 @@ export default function Calendarios({ d }: { d: Dados }) {
   // funcionário mexe só nos posts dele, do cliente dele
   const mexe = (i: Item) => d.ehDono || (i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente");
 
-  const its = d.itens.filter(i => i.cliente_id === sel && noMes(i, d.mes));
+  const area = areaDe(d.me.funcao, d.ehDono);
+  const its = d.itens.filter(i => i.cliente_id === sel && noMes(i, d.mes) && veTipo(area, i.tipo));
   const [a, m] = d.mes.split("-").map(Number);
   const primeiro = new Date(a, m - 1, 1, 12), nd = new Date(a, m, 0).getDate(), off = primeiro.getDay();
   const semanas = Math.ceil((off + nd) / 7);
