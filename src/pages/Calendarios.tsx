@@ -1,12 +1,13 @@
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
-import { Item, areaDe, iso, mesLabel, noMes, veTipo } from "../regras";
+import { Item, areaDe, iso, mesLabel, noMes, veTipo, temArte } from "../regras";
 import { Head, MesNav, Modal } from "../ui";
 import { ItemForm } from "./tabela";
 import { Renomear } from "./renomear";
 import { cronogramaPDF } from "../pdfCalendario";
+import { EntregaVer } from "./entrega";
 
 const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 
@@ -21,6 +22,8 @@ export default function Calendarios({ d }: { d: Dados }) {
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [alvo, setAlvo] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
+  const [ver, setVer] = useState<Item | null>(null);
+  const [capas, setCapas] = useState<Record<number, { url: string; video: boolean; n: number }>>({});
   const c = d.cliente(sel);
   const meuCli = !d.ehDono && c?.responsavel_id === d.me.id;
   const editar = (d.ehDono || meuCli) && editando;
@@ -29,6 +32,40 @@ export default function Calendarios({ d }: { d: Dados }) {
 
   const area = areaDe(d.me.funcao, d.ehDono);
   const its = d.itens.filter(i => i.cliente_id === sel && noMes(i, d.mes) && veTipo(area, i.tipo));
+  // dono: miniatura da primeira imagem entregue de cada post do mês
+  const comArq = d.ehDono ? its.filter(i => (i.n_arquivos || 0) > 0).map(i => i.id) : [];
+  const chaveArq = comArq.join(",") + "|" + its.map(i => (i.n_arquivos || 0)).join(",");
+  useEffect(() => {
+    if (!comArq.length) { setCapas({}); return; }
+    let vivo = true;
+    (async () => {
+      const r = await supabase.from("entrega_arquivos").select("item_id,caminho,tipo,nome,ordem,criado_em").in("item_id", comArq).is("removido_em", null);
+      const lista = (r.data || []) as any[];
+      const prim = new Map<number, any>(), cont = new Map<number, number>();
+      for (const x of lista.sort((p, q) => (p.ordem ?? 1e9) - (q.ordem ?? 1e9) || String(p.criado_em).localeCompare(q.criado_em))) {
+        cont.set(x.item_id, (cont.get(x.item_id) || 0) + 1);
+        if (!prim.has(x.item_id)) prim.set(x.item_id, x);
+      }
+      const arr = [...prim.values()];
+      if (!arr.length) { if (vivo) setCapas({}); return; }
+      const sg = await supabase.storage.from("entregas").createSignedUrls(arr.map(x => x.caminho), 3600);
+      const urls = new Map((sg.data || []).map((x: any) => [x.path, x.signedUrl]));
+      const out: Record<number, { url: string; video: boolean; n: number }> = {};
+      for (const x of arr) { const u = urls.get(x.caminho); if (u) out[x.item_id] = { url: u as string, video: /^video/.test(x.tipo || "") || /\.(mp4|mov|m4v|webm)$/i.test(x.nome), n: cont.get(x.item_id) || 1 }; }
+      if (vivo) setCapas(out);
+    })();
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveArq, sel, d.mes]);
+
+  const aprovar = async (i: Item, status: "Aprovado" | "Ajustes") => {
+    setVer(null);
+    const r = await supabase.from("itens").update({ status }).eq("id", i.id);
+    if (r.error) { d.aviso("Não deu certo: " + r.error.message); return; }
+    d.aviso(status === "Aprovado" ? "Arte aprovada" : "Ajuste pedido. A pessoa vê na tela dela.");
+    d.recarregar();
+  };
+
   const [a, m] = d.mes.split("-").map(Number);
   const primeiro = new Date(a, m - 1, 1, 12), nd = new Date(a, m, 0).getDate(), off = primeiro.getDay();
   const semanas = Math.ceil((off + nd) / 7);
@@ -57,13 +94,19 @@ export default function Calendarios({ d }: { d: Dados }) {
       <div className={"d" + (editar ? " ed" : "") + (alvo === dia ? " alvo" : "")} key={k} {...drop}>
         <span className="dn">{dn}</span>
         {ps.map(i => {
-          const conteudo = <><b>{i.tipo.toUpperCase()}</b>{i.tema}{editar && i.tipo !== "Prazo do cliente" && <small>{d.pessoa(i.responsavel_id)?.nome || "sem responsável"}</small>}</>;
+          const cp = capas[i.id];
+          const st = d.ehDono && i.tipo !== "Prazo do cliente" && ["Entregue", "Aprovado", "Postado", "Ajustes"].includes(i.status) ? i.status : null;
+          const conteudo = <>{d.ehDono && cp && !editar && <span className="p-capa">{cp.video ? <video src={cp.url} muted preload="metadata" /> : <img src={cp.url} alt="" loading="lazy" />}{cp.video && <em>▶</em>}{cp.n > 1 && <i>{cp.n}</i>}</span>}
+            <b>{i.tipo.toUpperCase()}</b>{i.tema}{editar && i.tipo !== "Prazo do cliente" && <small>{d.pessoa(i.responsavel_id)?.nome || "sem responsável"}</small>}
+            {st && !editar && <span className={"p-st st-" + (st === "Entregue" ? "aprovar" : st === "Ajustes" ? "ajuste" : "ok")}>{st === "Entregue" ? "Aprovar" : st}</span>}</>;
           const cls = "p" + (i.tipo === "Prazo do cliente" ? " pz" : "") + (arrastando === String(i.id) ? " drag" : "");
           return editar && mexe(i)
             ? <button type="button" className={cls} key={i.id} draggable title="Clique para editar ou arraste para outro dia"
                 onDragStart={e => { e.dataTransfer.setData("text/plain", String(i.id)); e.dataTransfer.effectAllowed = "move"; setArrastando(String(i.id)); }}
                 onDragEnd={() => { setArrastando(null); setAlvo(null); }}
                 onClick={() => setForm(i)}>{conteudo}</button>
+            : d.ehDono && temArte(i)
+              ? <button type="button" className={cls + " com-arte"} key={i.id} title="Ver a entrega, baixar e aprovar" onClick={() => setVer(i)}>{conteudo}</button>
             : !d.ehDono && i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente"
               ? <button type="button" className={cls} key={i.id} title="Clique para trocar o nome do post" onClick={() => setRenPost(i)}>{conteudo}</button>
               : <div className={cls} key={i.id}>{conteudo}</div>;
@@ -78,7 +121,7 @@ export default function Calendarios({ d }: { d: Dados }) {
   return (
     <>
       <Head eb="calendários" t="Cronograma de conteúdos"
-        sub={editar && !d.ehDono ? "Clique num post seu para mudar nome, data ou excluir. Arraste para trocar o dia ou use “+ post”." : !d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para trocar o nome dele. Nos clientes que são seus, use Editar para criar, mover ou excluir posts." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
+        sub={d.ehDono && !editar ? "Os posts do cliente no formato do calendário. Clique num post entregue para ver a arte, baixar e aprovar." : editar && !d.ehDono ? "Clique num post seu para mudar nome, data ou excluir. Arraste para trocar o dia ou use “+ post”." : !d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para trocar o nome dele. Nos clientes que são seus, use Editar para criar, mover ou excluir posts." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
         right={<div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button type="button" className="btn" disabled={gerando || !c} onClick={async () => {
             if (!c) return; setGerando(true);
@@ -109,6 +152,11 @@ export default function Calendarios({ d }: { d: Dados }) {
       <Modal open={renCli} onClose={() => setRenCli(false)}>
         {renCli && c && <Renomear titulo="Trocar o nome do cliente" rotulo="Nome do cliente" atual={c.nome} fechar={() => setRenCli(false)}
           salvar={async novo => { const r = await supabase.from("clientes").update({ nome: novo }).eq("id", c.id); if (!r.error) { d.aviso("Nome do cliente atualizado"); d.recarregar(); } return r; }} />}
+      </Modal>
+      <Modal open={!!ver} onClose={() => setVer(null)}>
+        {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)}
+          aprovar={ver.status === "Entregue" ? () => aprovar(ver, "Aprovado") : undefined}
+          ajuste={ver.status === "Entregue" ? () => aprovar(ver, "Ajustes") : undefined} />}
       </Modal>
       <Modal open={!!form} onClose={() => setForm(null)}>
         {form && <ItemForm key={form.id || "novo-" + form.data_post} d={d} item={form} fechar={() => setForm(null)} />}

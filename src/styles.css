@@ -721,3 +721,15 @@ dialog:has(.pf){width:min(520px,94vw)}
 .ev-leg-top span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .ev-leg p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.45}
 .ktipos{justify-content:flex-start;align-items:center;margin-top:-8px}.ktipos .muted{font-size:13px;margin-right:2px}
+
+/* ===== calendário: entregas no dono ===== */
+.calgrid .p.com-arte{cursor:pointer;text-align:left;font:inherit;font-size:12px;line-height:1.25;color:inherit;border:1px solid transparent;width:100%}
+.calgrid .p.com-arte:hover{border-color:var(--gold)}
+.p-capa{display:block;position:relative;margin:-1px -2px 5px;border-radius:5px;overflow:hidden;background:#000;height:64px}
+.p-capa img,.p-capa video{width:100%;height:100%;object-fit:cover;display:block}
+.p-capa em{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-style:normal;font-size:18px;text-shadow:0 1px 4px #0008}
+.p-capa i{position:absolute;right:4px;top:4px;background:#000a;color:#fff;font-style:normal;font-size:10px;font-weight:700;border-radius:99px;padding:1px 6px}
+.p-st{display:table;margin-top:4px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:99px;padding:2px 7px}
+.p-st.st-aprovar{background:var(--gold);color:#0B0B0B}
+.p-st.st-ok{background:var(--ok-soft);color:var(--ok)}
+.p-st.st-ajuste{background:var(--bad-soft);color:var(--bad)}
