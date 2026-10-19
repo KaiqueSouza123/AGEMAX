@@ -121,7 +121,7 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
         <label htmlFor="it-tipo">Tipo<select id="it-tipo" disabled={func && !novo} value={f.tipo} onChange={e => set("tipo", e.target.value)}>{TIPOS.filter(t => !func || t !== "Prazo do cliente").map(t => <option key={t}>{t}</option>)}</select></label>
         <label htmlFor="it-data">Data do post<input id="it-data" type="date" required value={f.data_post || ""} onChange={e => set("data_post", e.target.value)} /></label>
       </div>
-      {f.data_post && f.tipo !== "Prazo do cliente" && !["Entregue", "Aprovado", "Postado"].includes(f.status || "") && (() => {
+      {!func && f.data_post && f.tipo !== "Prazo do cliente" && !["Entregue", "Aprovado", "Postado"].includes(f.status || "") && (() => {
         const pz = prazoDe({ ...(f as Item) }), hojeD = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) + "T12:00:00");
         const passou = pz < hojeD;
         return <p className={"pz-aviso" + (passou ? " pz-bad" : "")} style={{ margin: 0, fontSize: 13 }}>
