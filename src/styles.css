@@ -742,3 +742,5 @@ dialog:has(.pf){width:min(520px,94vw)}
 .bx-d{font-family:var(--mono);font-size:12px;color:var(--mute);flex:none}
 .bx-n{display:grid;min-width:0}.bx-n b{overflow-wrap:anywhere}
 .bx-lista label{font-weight:400}.bx-n small{font-weight:400}
+.pd-voce-filtro{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 6px}
+.pd-voce-filtro select{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;min-width:0;max-width:100%}

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { Dados } from "../App";
 import { Item, alerta, noMes, ordenar, mesLabel, temArte, dt, fmtw, prazoDe, iso, hojeSP, uteisEntre, ehPrazoCliente } from "../regras";
 import { supabase } from "../supabase";
-import { EntregaVer } from "./entrega";
+import { BaixarVarios, EntregaVer } from "./entrega";
 import { Head, MesNav, Modal } from "../ui";
 import { ItemForm } from "./tabela";
 
@@ -32,6 +32,9 @@ function quando(p: Date, hoje: Date) {
 
 export default function Producao({ d }: { d: Dados }) {
   const [resp, setResp] = useState("");
+  const [porData, setPorData] = useState<"entrega" | "post">("entrega");
+  const [diaF, setDiaF] = useState("");
+  const [zip, setZip] = useState(false);
   const [cli, setCli] = useState("");
   const [sit, setSit] = useState<Sit>("");
   const [busca, setBusca] = useState("");
@@ -43,7 +46,12 @@ export default function Producao({ d }: { d: Dados }) {
   const [ver, setVer] = useState<Item | null>(null);
   const hoje = hojeSP();
 
-  const aguardando = ordenar(d.itens.filter(i => i.status === "Entregue" && temArte(i)));
+  const aguardandoTodos = ordenar(d.itens.filter(i => i.status === "Entregue" && temArte(i)));
+  // filtro do "Precisa de você": por dia em que foi entregue ou dia do post
+  const diaDe = (i: Item) => (porData === "entrega" ? i.entregue_em : i.data_post) || "";
+  const diasAg = [...new Set(aguardandoTodos.map(diaDe).filter(Boolean))].sort().reverse().map(x => ({ x, n: aguardandoTodos.filter(i => diaDe(i) === x).length }));
+  const diaA = diasAg.some(z => z.x === diaF) ? diaF : "";
+  const aguardando = diaA ? aguardandoTodos.filter(i => diaDe(i) === diaA) : aguardandoTodos;
   const mudar = async (i: Item, status: string, msg: string) => {
     setVer(null);
     const r = await supabase.from("itens").update({ status }).eq("id", i.id);
@@ -119,11 +127,22 @@ export default function Producao({ d }: { d: Dados }) {
         right={<div className="filters"><MesNav mes={d.mes} setMes={d.setMes} /><button type="button" className="btn gold pd-novo" onClick={() => abrir(null)}>+ Novo post</button></div>} />
 
       <section className="pd-resumo" aria-label="Resumo do mês">
-        {aguardando.length > 0 ? (
+        {aguardandoTodos.length > 0 ? (
           <div className="pd-voce">
             <div className="pd-voce-t">
               <span className="pd-eb">Precisa de você</span>
-              <b>{aguardando.length} entrega{aguardando.length > 1 ? "s" : ""} para aprovar</b>
+              <b>{aguardando.length} entrega{aguardando.length > 1 ? "s" : ""} para aprovar{diaA ? ` · ${porData === "entrega" ? "entregues" : "posts de"} ${fmtw(dt(diaA))}` : ""}</b>
+              <div className="pd-voce-filtro">
+                <select aria-label="Filtrar por" value={porData} onChange={e => { setPorData(e.target.value as any); setDiaF(""); }}>
+                  <option value="entrega">Dia da entrega</option>
+                  <option value="post">Dia do post</option>
+                </select>
+                <select aria-label="Dia" value={diaA} onChange={e => setDiaF(e.target.value)}>
+                  <option value="">Todos os dias ({aguardandoTodos.length})</option>
+                  {diasAg.map(z => <option key={z.x} value={z.x}>{z.x === iso(hojeSP()) ? "Hoje · " : ""}{fmtw(dt(z.x))} ({z.n})</option>)}
+                </select>
+                <button type="button" className="btn sm" onClick={() => setZip(true)}>Baixar {aguardando.length} em ZIP</button>
+              </div>
               <div className="pd-voce-lista">
                 {aguardando.map(i => (
                   <button type="button" key={i.id} onClick={() => setVer(i)}>
@@ -254,6 +273,10 @@ export default function Producao({ d }: { d: Dados }) {
             <button type="button" className="btn gold pf-ok" onClick={() => setFiltros(false)}>Mostrar {its.length} post{its.length === 1 ? "" : "s"}</button>
           </div>
         )}
+      </Modal>
+      <Modal open={zip} onClose={() => setZip(false)}>
+        {zip && <BaixarVarios d={d} itens={aguardando} fechar={() => setZip(false)}
+          titulo={diaA ? `${porData === "entrega" ? "entregues em" : "posts de"} ${dt(diaA).toLocaleDateString("pt-BR")}` : "entregas para aprovar"} />}
       </Modal>
       <Modal open={!!ver} onClose={() => setVer(null)}>
         {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)}
