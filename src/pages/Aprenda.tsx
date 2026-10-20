@@ -213,6 +213,7 @@ const FAQ_DONO = [
   ["Designer vê ideia de vídeo?", "Não. Pela função cadastrada em Equipe: Designer não vê Reels e vídeos no calendário e no Radar; Videomaker ou editor de vídeo não vê posts de imagem. Stories e prazos do cliente aparecem para todos. Quem tem outra função vê tudo."],
   ["Onde guardo as pastas do Drive dos clientes?", "Na aba Links. Toda a equipe vê e pode adicionar, corrigir ou excluir. Cada link mostra quem mexeu por último."],
   ["Dá para aprovar pelo calendário?", "Sim. Em Calendários, os posts entregues mostram a miniatura da arte e o selo APROVAR. Clique no post para ver os arquivos, baixar, copiar a legenda e aprovar ou pedir ajuste."],
+  ["Consigo baixar as artes de vários posts juntos?", "Sim. Em Calendários, clique em Baixar artes, marque os posts (do cliente ou de todos os clientes do mês) e baixe tudo num ZIP. Cada post vem numa pasta com os arquivos em ordem e a legenda num arquivo de texto."],
   ["Como mando o calendário para o cliente?", "Em Calendários, escolha o cliente e o mês e clique em Baixar PDF. O PDF sai no formato Agemax com os posts como estão agora, então qualquer mudança feita no site já entra no arquivo."],
   ["Posso apagar um post?", "Sim: Calendários › Editar ou Produção › Editar, e depois Excluir."],
   ["Os arquivos ficam guardados para sempre?", "Não. Arquivos de posts aprovados são apagados sozinhos no fim do mês (os de mais de 30 dias) ou quando o espaço está perto do limite. Baixe o que quiser guardar."],

@@ -7,7 +7,7 @@ import { Head, MesNav, Modal } from "../ui";
 import { ItemForm } from "./tabela";
 import { Renomear } from "./renomear";
 import { cronogramaPDF } from "../pdfCalendario";
-import { EntregaVer } from "./entrega";
+import { BaixarVarios, EntregaVer } from "./entrega";
 
 const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 
@@ -23,6 +23,7 @@ export default function Calendarios({ d }: { d: Dados }) {
   const [alvo, setAlvo] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
   const [ver, setVer] = useState<Item | null>(null);
+  const [lote, setLote] = useState<null | "cli" | "todos">(null);
   const [capas, setCapas] = useState<Record<number, { url: string; video: boolean; n: number }>>({});
   const c = d.cliente(sel);
   const meuCli = !d.ehDono && c?.responsavel_id === d.me.id;
@@ -129,6 +130,7 @@ export default function Calendarios({ d }: { d: Dados }) {
             catch { d.aviso("Não consegui gerar o PDF. Tente de novo."); }
             finally { setGerando(false); }
           }}>{gerando ? "Gerando PDF…" : "Baixar PDF"}</button>
+          {d.ehDono && <button type="button" className="btn" onClick={() => setLote("cli")}>Baixar artes</button>}
           {(d.ehDono || meuCli) && <button type="button" className={"btn " + (editar ? "pri" : "gold")} aria-pressed={editar} onClick={() => setEditando(x => !x)}>{editar ? "Concluir edição" : "Editar"}</button>}
         </div>} />
       <div className="calhead">
@@ -152,6 +154,17 @@ export default function Calendarios({ d }: { d: Dados }) {
       <Modal open={renCli} onClose={() => setRenCli(false)}>
         {renCli && c && <Renomear titulo="Trocar o nome do cliente" rotulo="Nome do cliente" atual={c.nome} fechar={() => setRenCli(false)}
           salvar={async novo => { const r = await supabase.from("clientes").update({ nome: novo }).eq("id", c.id); if (!r.error) { d.aviso("Nome do cliente atualizado"); d.recarregar(); } return r; }} />}
+      </Modal>
+      <Modal open={!!lote} onClose={() => setLote(null)}>
+        {lote && c && <div>
+          <div className="kfiltro" role="group" aria-label="Quais posts" style={{ justifyContent: "flex-start", marginBottom: 10 }}>
+            <button type="button" aria-pressed={lote === "cli"} onClick={() => setLote("cli")}>Só {c.nome}</button>
+            <button type="button" aria-pressed={lote === "todos"} onClick={() => setLote("todos")}>Todos os clientes</button>
+          </div>
+          <BaixarVarios key={lote} d={d} fechar={() => setLote(null)}
+            titulo={(lote === "cli" ? c.nome : "todos os clientes") + " · " + mesLabel(d.mes)}
+            itens={lote === "cli" ? its : d.itens.filter(i => noMes(i, d.mes))} />
+        </div>}
       </Modal>
       <Modal open={!!ver} onClose={() => setVer(null)}>
         {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)}

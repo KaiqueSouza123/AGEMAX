@@ -733,3 +733,12 @@ dialog:has(.pf){width:min(520px,94vw)}
 .p-st.st-aprovar{background:var(--gold);color:#0B0B0B}
 .p-st.st-ok{background:var(--ok-soft);color:var(--ok)}
 .p-st.st-ajuste{background:var(--bad-soft);color:var(--bad)}
+
+/* ===== baixar várias artes ===== */
+.bx-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.bx-lista{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:50vh;overflow:auto}
+.bx-lista label{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);cursor:pointer}
+.bx-lista input{width:18px;height:18px;accent-color:var(--gold);flex:none}
+.bx-d{font-family:var(--mono);font-size:12px;color:var(--mute);flex:none}
+.bx-n{display:grid;min-width:0}.bx-n b{overflow-wrap:anywhere}
+.bx-lista label{font-weight:400}.bx-n small{font-weight:400}

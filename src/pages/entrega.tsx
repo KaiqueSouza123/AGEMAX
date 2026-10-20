@@ -345,3 +345,96 @@ export async function limparArquivos(): Promise<number> {
   if (mensal) await supabase.from("manutencao").upsert({ chave: "limpeza_mes", valor: alvoMes, em: new Date().toISOString() });
   return sel.length;
 }
+
+/* ============ baixar as artes de vários posts de uma vez (ZIP) ============ */
+const pasta = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 60);
+export function BaixarVarios({ d, itens, titulo, fechar }: { d: Dados; itens: Item[]; titulo: string; fechar: () => void }) {
+  const [arqs, setArqs] = useState<Arquivo[] | null>(null);
+  const [sel, setSel] = useState<Set<number>>(new Set());
+  const [prog, setProg] = useState<{ feito: number; total: number } | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const comArte = itens.filter(i => temArte(i)).sort((a, b) => a.data_post.localeCompare(b.data_post));
+
+  useEffect(() => {
+    const ids = comArte.filter(i => (i.n_arquivos || 0) > 0).map(i => i.id);
+    if (!ids.length) { setArqs([]); setSel(new Set(comArte.map(i => i.id))); return; }
+    supabase.from("entrega_arquivos").select("*").in("item_id", ids).is("removido_em", null).then(r => {
+      const l = ((r.data || []) as Arquivo[]).sort((a, b) => (a.ordem ?? 1e9) - (b.ordem ?? 1e9) || a.criado_em.localeCompare(b.criado_em));
+      setArqs(l);
+      // já vem marcado o que ainda não foi postado
+      setSel(new Set(comArte.filter(i => i.status !== "Postado").map(i => i.id)));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const doPost = (id: number) => (arqs || []).filter(a => a.item_id === id);
+  const escolhidos = comArte.filter(i => sel.has(i.id));
+  const nArq = escolhidos.reduce((s, i) => s + doPost(i.id).length, 0);
+  const bytes = escolhidos.reduce((s, i) => s + doPost(i.id).reduce((t, a) => t + Number(a.tamanho || 0), 0), 0);
+  const alternar = (id: number) => setSel(x => { const n = new Set(x); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const baixar = async () => {
+    setErro(null);
+    const lista = escolhidos.flatMap(i => doPost(i.id).map(a => ({ i, a })));
+    if (!lista.length && !escolhidos.some(i => i.link || i.legenda)) { setErro("Os posts marcados não têm arquivo para baixar."); return; }
+    const { default: JSZip } = await import("jszip");
+    const zip = new JSZip();
+    setProg({ feito: 0, total: lista.length });
+    const assinadas = lista.length ? await supabase.storage.from(BUCKET).createSignedUrls(lista.map(x => x.a.caminho), 3600) : { data: [] as any[] };
+    const url = new Map((assinadas.data || []).map((x: any) => [x.path, x.signedUrl as string]));
+    let falhas = 0, feito = 0;
+    for (const i of escolhidos) {
+      const dir = zip.folder(`${i.data_post.slice(8, 10)}-${i.data_post.slice(5, 7)} ${pasta(d.cliente(i.cliente_id)?.nome || "")} - ${pasta(i.tema)}`)!;
+      const leg = [i.legenda ? "LEGENDA DO POST\n" + i.legenda : "", ...doPost(i.id).map((a, k) => a.legenda ? `LEGENDA DA IMAGEM ${k + 1} (${a.nome})\n${a.legenda}` : ""), i.link ? "LINK DA ARTE\n" + i.link : ""].filter(Boolean).join("\n\n");
+      if (leg) dir.file("legenda.txt", leg);
+      const usados = new Set<string>();
+      for (const [k, a] of doPost(i.id).entries()) {
+        try {
+          const u = url.get(a.caminho); if (!u) throw new Error();
+          const r = await fetch(u); if (!r.ok) throw new Error();
+          let nome = `${String(k + 1).padStart(2, "0")} - ${a.nome}`; while (usados.has(nome)) nome = "_" + nome; usados.add(nome);
+          dir.file(nome, await r.blob());
+        } catch { falhas++; }
+        setProg({ feito: ++feito, total: lista.length });
+      }
+    }
+    const blob = await zip.generateAsync({ type: "blob", compression: "STORE" });
+    const el = document.createElement("a"); el.href = URL.createObjectURL(blob); el.download = `Artes ${pasta(titulo)}.zip`;
+    document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(el.href), 60000);
+    setProg(null);
+    d.aviso(falhas ? `ZIP baixado, mas ${falhas} arquivo(s) não vieram. Tente de novo.` : `ZIP baixado com ${escolhidos.length} post(s)`);
+    if (!falhas) fechar();
+  };
+
+  return (
+    <div className="form bx">
+      <div><h2>Baixar artes</h2><p className="muted" style={{ margin: 0 }}>{titulo} · marque os posts e baixe tudo num arquivo ZIP, uma pasta por post (com a legenda junto).</p></div>
+      {comArte.length === 0 ? <div className="kvazio">Nenhum post entregue neste mês ainda.</div> : arqs === null ? <div className="kvazio">Carregando…</div> : (
+        <>
+          <div className="bx-top">
+            <button type="button" className="linkbtn" onClick={() => setSel(sel.size === comArte.length ? new Set() : new Set(comArte.map(i => i.id)))}>{sel.size === comArte.length ? "Desmarcar todos" : "Marcar todos"}</button>
+            <span className="muted">{escolhidos.length} post(s) · {nArq} arquivo(s){bytes ? " · " + tamanho(bytes) : ""}</span>
+          </div>
+          <ul className="bx-lista">
+            {comArte.map(i => {
+              const fs = doPost(i.id);
+              return (
+                <li key={i.id}><label>
+                  <input type="checkbox" checked={sel.has(i.id)} onChange={() => alternar(i.id)} />
+                  <span className="bx-d">{i.data_post.slice(8, 10)}/{i.data_post.slice(5, 7)}</span>
+                  <span className="bx-n"><b>{i.tema}</b><small className="muted">{d.cliente(i.cliente_id)?.nome} · {fs.length ? `${fs.length} arquivo${fs.length > 1 ? "s" : ""}` : "só link"}{i.legenda ? " · com legenda" : ""} · {i.status === "Entregue" ? "aguardando aprovação" : i.status.toLowerCase()}</small></span>
+                </label></li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+      {erro && <div className="err">{erro}</div>}
+      <div className="acts">
+        {prog && <span className="muted" style={{ marginRight: "auto" }}>Baixando {prog.feito} de {prog.total}…</span>}
+        <button type="button" className="btn" onClick={fechar}>Cancelar</button>
+        <button type="button" className="btn gold" disabled={!!prog || !escolhidos.length} onClick={baixar}>{prog ? "Preparando ZIP…" : `Baixar ${escolhidos.length || ""} em ZIP`}</button>
+      </div>
+    </div>
+  );
+}
