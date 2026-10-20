@@ -744,3 +744,6 @@ dialog:has(.pf){width:min(520px,94vw)}
 .bx-lista label{font-weight:400}.bx-n small{font-weight:400}
 .pd-voce-filtro{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 6px}
 .pd-voce-filtro select{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;min-width:0;max-width:100%}
+.robo{display:flex;gap:12px;align-items:flex-start}
+.robo-dot{width:12px;height:12px;border-radius:50%;margin-top:6px;flex:none;background:var(--bad)}
+.robo.on .robo-dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}

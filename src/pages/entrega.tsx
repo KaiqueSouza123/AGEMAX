@@ -139,7 +139,10 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
           if (r.error) return r;
         }
       }
-      return supabase.from("itens").update({ status: "Entregue", link: l || null, legenda: legenda.trim() || null }).eq("id", i.id) as any;
+      const r = await supabase.from("itens").update({ status: "Entregue", link: l || null, legenda: legenda.trim() || null }).eq("id", i.id);
+      // trocou arquivos de uma entrega já feita: avisa o grupo dos donos de novo
+      if (!r.error && i.status === "Entregue") await supabase.from("avisos_whatsapp").insert({ item_id: i.id, motivo: "atualizado" });
+      return r as any;
     });
     if (ok) { fechar(); d.aviso(i.status === "Entregue" ? "Entrega atualizada. O dono já vê os arquivos novos." : "Entregue. Agora é com o dono."); d.recarregar(); }
   };
