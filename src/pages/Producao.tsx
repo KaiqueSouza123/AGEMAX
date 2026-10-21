@@ -35,6 +35,8 @@ export default function Producao({ d }: { d: Dados }) {
   const [porData, setPorData] = useState<"entrega" | "post">("entrega");
   const [diaF, setDiaF] = useState("");
   const [zip, setZip] = useState(false);
+  const [marcados, setMarcados] = useState<Set<number>>(new Set());
+  const [aprovando, setAprovando] = useState(false);
   const [cli, setCli] = useState("");
   const [sit, setSit] = useState<Sit>("");
   const [busca, setBusca] = useState("");
@@ -56,6 +58,16 @@ export default function Producao({ d }: { d: Dados }) {
     setVer(null);
     const r = await supabase.from("itens").update({ status }).eq("id", i.id);
     if (r.error) d.aviso("Não deu certo: " + r.error.message); else { d.aviso(msg); d.recarregar(); }
+  };
+  const aprovarVarios = async (ids: number[]) => {
+    if (!ids.length) return;
+    setAprovando(true);
+    const r = await supabase.from("itens").update({ status: "Aprovado" }).in("id", ids).eq("status", "Entregue").select("id");
+    setAprovando(false);
+    if (r.error) { d.aviso("Não deu certo: " + r.error.message); return; }
+    setMarcados(new Set());
+    d.aviso(`${r.data?.length || 0} arte${(r.data?.length || 0) === 1 ? "" : "s"} aprovada${(r.data?.length || 0) === 1 ? "" : "s"}`);
+    d.recarregar();
   };
   const abrir = (i: Partial<Item> | null) => { setEditar(i); setAberto(true); };
 
@@ -143,11 +155,26 @@ export default function Producao({ d }: { d: Dados }) {
                 </select>
                 <button type="button" className="btn sm" onClick={() => setZip(true)}>Baixar {aguardando.length} em ZIP</button>
               </div>
+              {(() => {
+                const vis = aguardando.map(i => i.id), sel = vis.filter(id => marcados.has(id)), todos = sel.length === vis.length && vis.length > 0;
+                return (
+                  <div className="pd-voce-sel">
+                    <label><input type="checkbox" checked={todos} ref={el => { if (el) el.indeterminate = sel.length > 0 && !todos; }}
+                      onChange={() => setMarcados(todos ? new Set([...marcados].filter(id => !vis.includes(id))) : new Set([...marcados, ...vis]))} />
+                      {sel.length ? `${sel.length} selecionado${sel.length > 1 ? "s" : ""}` : "Selecionar todos"}</label>
+                    {sel.length > 0 && <button type="button" className="btn gold sm" disabled={aprovando} onClick={() => aprovarVarios(sel)}>{aprovando ? "Aprovando…" : `Aprovar ${sel.length}`}</button>}
+                    {sel.length > 0 && <button type="button" className="linkbtn" onClick={() => setMarcados(new Set())}>limpar</button>}
+                  </div>
+                );
+              })()}
               <div className="pd-voce-lista">
                 {aguardando.map(i => (
-                  <button type="button" key={i.id} onClick={() => setVer(i)}>
+                  <div className={"pd-voce-it" + (marcados.has(i.id) ? " on" : "")} key={i.id}>
+                  <input type="checkbox" aria-label={"Selecionar " + i.tema} checked={marcados.has(i.id)} onChange={() => setMarcados(x => { const n = new Set(x); n.has(i.id) ? n.delete(i.id) : n.add(i.id); return n; })} />
+                  <button type="button" onClick={() => setVer(i)}>
                     <b>{i.tema}</b><small>{d.cliente(i.cliente_id)?.nome} · {d.pessoa(i.responsavel_id)?.nome || "—"} · {i.n_arquivos ? `${i.n_arquivos} arquivo${i.n_arquivos > 1 ? "s" : ""}` : "só link"}{i.entregue_em ? " · " + fmtw(dt(i.entregue_em)) : ""}</small>
                   </button>
+                  </div>
                 ))}
               </div>
             </div>

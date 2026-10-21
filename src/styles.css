@@ -747,3 +747,9 @@ dialog:has(.pf){width:min(520px,94vw)}
 .robo{display:flex;gap:12px;align-items:flex-start}
 .robo-dot{width:12px;height:12px;border-radius:50%;margin-top:6px;flex:none;background:var(--bad)}
 .robo.on .robo-dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.pd-voce-sel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:30px}
+.pd-voce-sel label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.pd-voce-sel input,.pd-voce-it input{width:17px;height:17px;accent-color:var(--gold);flex:none;cursor:pointer}
+.pd-voce-it{display:flex;align-items:center;gap:8px;min-width:0}
+.pd-voce-it>button{flex:1;margin:0 -8px 0 0 !important}
+.pd-voce-it.on>button{background:color-mix(in srgb,var(--gold) 12%,transparent)}
