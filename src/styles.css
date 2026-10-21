@@ -753,3 +753,4 @@ dialog:has(.pf){width:min(520px,94vw)}
 .pd-voce-it{display:flex;align-items:center;gap:8px;min-width:0}
 .pd-voce-it>button{flex:1;margin:0 -8px 0 0 !important}
 .pd-voce-it.on>button{background:color-mix(in srgb,var(--gold) 12%,transparent)}
+.kfiltro button.em-dia{opacity:.75}

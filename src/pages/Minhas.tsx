@@ -47,8 +47,10 @@ export default function Minhas({ d }: { d: Dados }) {
   const mesAtual = iso(hojeSP()).slice(0, 7);
   // tudo que ainda está em andamento (de qualquer mês) + o que foi entregue e espera aprovação
   const ativas = ordenar(minhas.filter(i => !["Aprovado", "Postado"].includes(i.status)));
-  const clientes = [...new Set(ativas.map(i => i.cliente_id))].map(id => ({ id, nome: d.cliente(id)?.nome || "—", n: ativas.filter(i => i.cliente_id === id).length }))
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+  // todos os clientes da pessoa aparecem, mesmo os que estão em dia (sem nada pendente)
+  const idsCli = new Set([...ativas.map(i => i.cliente_id), ...d.clientes.filter(c => c.ativo && c.responsavel_id === d.me.id).map(c => c.id)]);
+  const clientes = [...idsCli].map(id => ({ id, nome: d.cliente(id)?.nome || "—", n: ativas.filter(i => i.cliente_id === id).length }))
+    .sort((a, b) => (b.n > 0 ? 1 : 0) - (a.n > 0 ? 1 : 0) || a.nome.localeCompare(b.nome));
   const doCli = filtro ? ativas.filter(i => i.cliente_id === filtro) : ativas;
   const tipos = [...new Set(doCli.map(i => i.tipo))].sort().map(t => ({ t, n: doCli.filter(i => i.tipo === t).length }));
   const tipoA = tipos.some(x => x.t === tipoF) ? tipoF : "";
@@ -68,7 +70,7 @@ export default function Minhas({ d }: { d: Dados }) {
           {clientes.length > 1 && (
           <div className="kfiltro" role="group" aria-label="Filtrar por cliente">
             <button type="button" aria-pressed={!filtro} onClick={() => setFiltro("")}>Todos · {ativas.length}</button>
-            {clientes.map(c => <button type="button" key={c.id} aria-pressed={filtro === c.id} onClick={() => setFiltro(c.id)}>{c.nome} · {c.n}</button>)}
+            {clientes.map(c => <button type="button" key={c.id} aria-pressed={filtro === c.id} className={c.n ? "" : "em-dia"} title={c.n ? "" : "Tudo entregue e aprovado neste cliente"} onClick={() => setFiltro(c.id)}>{c.nome} · {c.n || "✓ em dia"}</button>)}
           </div>)}
         </div>} />
 
@@ -88,6 +90,12 @@ export default function Minhas({ d }: { d: Dados }) {
       {minhas.length === 0
         ? <div className="panel empty">Nenhuma demanda com você ainda. Quando o dono lançar os posts do mês, eles aparecem aqui.</div>
         : (
+          <>
+          {filtro && !clientes.find(c => c.id === filtro)?.n && (
+            <div className="panel empty" style={{ marginBottom: 12 }}>
+              <b>Tudo em dia com {d.cliente(filtro)?.nome}.</b> {(() => { const n = minhas.filter(i => i.cliente_id === filtro && noMes(i, mesAtual) && ["Aprovado", "Postado"].includes(i.status)).length; return n ? `${n} post${n > 1 ? "s" : ""} deste mês já aprovado${n > 1 ? "s" : ""}. ` : ""; })()}O cliente continua com você: quando houver post novo, ele aparece aqui.
+            </div>
+          )}
           <div className="kanban">
             {COLUNAS.map(col => {
               const cards = vis.filter(i => col.status.includes(i.status));
@@ -130,6 +138,7 @@ export default function Minhas({ d }: { d: Dados }) {
               );
             })}
           </div>
+          </>
         )}
       <Modal open={!!entregar} onClose={() => setEntregar(null)}>
         {entregar && <EntregaForm d={d} i={entregar} fechar={() => setEntregar(null)} />}
