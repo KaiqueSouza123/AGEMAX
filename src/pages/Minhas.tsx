@@ -70,7 +70,7 @@ export default function Minhas({ d }: { d: Dados }) {
           {clientes.length > 1 && (
           <div className="kfiltro" role="group" aria-label="Filtrar por cliente">
             <button type="button" aria-pressed={!filtro} onClick={() => setFiltro("")}>Todos · {ativas.length}</button>
-            {clientes.map(c => <button type="button" key={c.id} aria-pressed={filtro === c.id} className={c.n ? "" : "em-dia"} title={c.n ? "" : "Tudo entregue e aprovado neste cliente"} onClick={() => setFiltro(c.id)}>{c.nome} · {c.n || "✓ em dia"}</button>)}
+            {clientes.map(c => <button type="button" key={c.id} aria-pressed={filtro === c.id} className={c.n ? "" : "em-dia"} title={c.n ? "" : "Tudo entregue e aprovado neste cliente"} onClick={() => setFiltro(c.id)}>{c.nome} · {c.n}</button>)}
           </div>)}
         </div>} />
 
