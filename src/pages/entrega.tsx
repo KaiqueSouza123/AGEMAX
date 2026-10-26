@@ -356,7 +356,24 @@ export function BaixarVarios({ d, itens, titulo, fechar }: { d: Dados; itens: It
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [prog, setProg] = useState<{ feito: number; total: number } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [robo, setRobo] = useState<{ versao?: string; estado?: string } | null>(null);
+  const [mandando, setMandando] = useState(false);
   const comArte = itens.filter(i => temArte(i)).sort((a, b) => a.data_post.localeCompare(b.data_post));
+  useEffect(() => {
+    if (!d.ehDono) return;
+    supabase.from("manutencao").select("valor").eq("chave", "robo_whatsapp").maybeSingle().then(m => { try { setRobo(JSON.parse(m.data?.valor || "null")); } catch { setRobo(null); } });
+  }, [d.ehDono]);
+  const roboFoto = !!robo && Number(robo.versao || 0) >= 1.1;
+  const mandarFotos = async () => {
+    const ids = escolhidos.filter(i => doPost(i.id).length).map(i => i.id);
+    if (!ids.length) { setErro("Os posts marcados não têm imagem anexada."); return; }
+    setMandando(true);
+    const r = await supabase.from("avisos_whatsapp").insert(ids.map(item_id => ({ item_id, motivo: "fotos" })));
+    setMandando(false);
+    if (r.error) { setErro("Não consegui pedir o envio: " + r.error.message); return; }
+    d.aviso(`${ids.length} post(s) na fila: o robô manda as fotos no grupo em instantes`);
+    fechar();
+  };
 
   useEffect(() => {
     const ids = comArte.filter(i => (i.n_arquivos || 0) > 0).map(i => i.id);
@@ -432,10 +449,12 @@ export function BaixarVarios({ d, itens, titulo, fechar }: { d: Dados; itens: It
           </ul>
         </>
       )}
+      {d.ehDono && robo && !roboFoto && <p className="muted" style={{ margin: 0, fontSize: 13 }}>Para mandar no WhatsApp como foto, troque o arquivo robo.mjs do robô pela versão nova e abra o robô de novo.</p>}
       {erro && <div className="err">{erro}</div>}
-      <div className="acts">
+      <div className="acts" style={{ flexWrap: "wrap" }}>
         {prog && <span className="muted" style={{ marginRight: "auto" }}>Baixando {prog.feito} de {prog.total}…</span>}
         <button type="button" className="btn" onClick={fechar}>Cancelar</button>
+        {d.ehDono && <button type="button" className="btn" disabled={!roboFoto || mandando || !nArq} title={roboFoto ? "Manda as imagens marcadas no grupo do WhatsApp como foto" : "Atualize o robô do WhatsApp para usar esta opção"} onClick={mandarFotos}>{mandando ? "Pedindo…" : `Mandar ${nArq || ""} no WhatsApp como foto`}</button>}
         <button type="button" className="btn gold" disabled={!!prog || !escolhidos.length} onClick={baixar}>{prog ? "Preparando ZIP…" : `Baixar ${escolhidos.length || ""} em ZIP`}</button>
       </div>
     </div>
