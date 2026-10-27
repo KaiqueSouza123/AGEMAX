@@ -754,3 +754,28 @@ dialog:has(.pf){width:min(520px,94vw)}
 .pd-voce-it>button{flex:1;margin:0 -8px 0 0 !important}
 .pd-voce-it.on>button{background:color-mix(in srgb,var(--gold) 12%,transparent)}
 .kfiltro button.em-dia{opacity:.75}
+
+/* ===== Galeria ===== */
+.gl-filtros{margin:0 0 18px}
+.gl-acao{position:sticky;top:8px;z-index:5;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin:0 0 16px}
+.gl-acao span{font-weight:700;margin-right:auto}
+.gl-mes{margin:0 0 26px}
+.gl-mes h2{font-size:18px;margin:0 0 10px}
+.gl-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.gl-card{position:relative;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:grid;min-width:0}
+.gl-card.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.gl-img{position:relative;display:grid;place-items:center;aspect-ratio:4/5;background:#0b0b0b;border:0;padding:0;cursor:pointer;width:100%}
+.gl-img img,.gl-img video{width:100%;height:100%;object-fit:cover;display:block}
+.gl-img i{position:absolute;right:6px;top:6px;background:#000b;color:#fff;font-style:normal;font-size:11px;font-weight:700;border-radius:99px;padding:2px 7px}
+.gl-img em{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-style:normal;font-size:24px;text-shadow:0 1px 5px #0009;pointer-events:none}
+.gl-card figcaption{padding:8px 10px 10px;display:grid;gap:2px;min-width:0}
+.gl-card figcaption b{font-size:13.5px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gl-card figcaption small{font-size:11.5px}
+.gl-marca{position:absolute;left:6px;top:6px;background:#000a;border-radius:7px;padding:5px;display:grid;place-items:center;cursor:pointer}
+.gl-marca input{width:18px;height:18px;margin:0;accent-color:var(--gold)}
+.gl-antigo{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:6px 0 20px;display:grid;gap:12px}
+.gl-antigo-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.gl-antigo h2{font-size:18px;margin:0}
+.gl-antigo p{margin:2px 0 0}
+.gl-antigo iframe{width:100%;height:560px;border:1px solid var(--line);border-radius:10px;background:#fff}
+@media (max-width:640px){.gl-grade{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.gl-filtros select{flex:1 1 140px}.gl-antigo iframe{height:440px}}

@@ -3,8 +3,9 @@ import { SUPA_KEY, SUPA_URL, supabase } from "../supabase";
 import type { Dados } from "../App";
 import { Item, dt, fmtw, temArte } from "../regras";
 import { useBusy } from "../ui";
+import { miniDoUpload, urlsMini } from "../miniatura";
 
-export type Arquivo = { id: string; item_id: number; caminho: string; nome: string; tipo: string | null; tamanho: number; criado_em: string; removido_em: string | null; legenda?: string | null; ordem?: number | null };
+export type Arquivo = { id: string; item_id: number; caminho: string; nome: string; tipo: string | null; tamanho: number; criado_em: string; removido_em: string | null; legenda?: string | null; ordem?: number | null; miniatura?: string | null; no_drive_em?: string | null };
 const MAX = 50 * 1024 * 1024;
 const BUCKET = "entregas";
 
@@ -33,6 +34,16 @@ function enviar(caminho: string, arq: File, token: string, progresso: (p: number
     x.onerror = () => erro(new Error("Sem conexão. Tente de novo."));
     x.send(arq);
   });
+}
+
+// grava o arquivo no banco; se o banco ainda não tiver a coluna da miniatura, grava sem ela
+async function inserirArquivo(dados: Record<string, unknown>, miniatura: string | null) {
+  if (miniatura) {
+    const r = await supabase.from("entrega_arquivos").insert({ ...dados, miniatura }).select("*").single();
+    if (!r.error || !/miniatura/i.test(r.error.message)) return r;
+    await supabase.storage.from(BUCKET).remove([miniatura]);
+  }
+  return supabase.from("entrega_arquivos").insert(dados).select("*").single();
 }
 
 type Envio = { chave: string; nome: string; tamanho: number; tipo: string; p: number; erro?: string; feito?: Arquivo };
@@ -69,8 +80,9 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
       const caminho = `${i.id}/${Date.now()}-${nomeSeguro(arq.name)}`;
       try {
         await enviar(caminho, arq, token, p => atualizar(chave, { p }));
-        const r = await supabase.from("entrega_arquivos").insert({ item_id: i.id, caminho, nome: arq.name, tipo: arq.type, tamanho: arq.size, enviado_por: d.me.id }).select("*").single();
-        if (r.error) { await supabase.storage.from(BUCKET).remove([caminho]); throw new Error(r.error.message); }
+        const miniatura = await miniDoUpload(i.id, arq);
+        const r = await inserirArquivo({ item_id: i.id, caminho, nome: arq.name, tipo: arq.type, tamanho: arq.size, enviado_por: d.me.id }, miniatura);
+        if (r.error) { await supabase.storage.from(BUCKET).remove([caminho, ...(miniatura ? [miniatura] : [])]); throw new Error(r.error.message); }
         atualizar(chave, { p: 1, feito: r.data as Arquivo });
       } catch (e: any) { atualizar(chave, { erro: e.message || "Falhou o envio." }); }
     }
@@ -90,10 +102,11 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
     const caminho = `${i.id}/${Date.now()}-${nomeSeguro(arq.name)}`;
     try {
       await enviar(caminho, arq, token, p => setTrocando({ id: velho.id, p }));
-      const r = await supabase.from("entrega_arquivos").insert({ item_id: i.id, caminho, nome: arq.name, tipo: arq.type, tamanho: arq.size, enviado_por: d.me.id }).select("*").single();
-      if (r.error) { await supabase.storage.from(BUCKET).remove([caminho]); throw new Error(r.error.message); }
+      const miniatura = await miniDoUpload(i.id, arq);
+      const r = await inserirArquivo({ item_id: i.id, caminho, nome: arq.name, tipo: arq.type, tamanho: arq.size, enviado_por: d.me.id }, miniatura);
+      if (r.error) { await supabase.storage.from(BUCKET).remove([caminho, ...(miniatura ? [miniatura] : [])]); throw new Error(r.error.message); }
       const novo = r.data as Arquivo;
-      await supabase.storage.from(BUCKET).remove([velho.caminho]);
+      await supabase.storage.from(BUCKET).remove([velho.caminho, ...(velho.miniatura ? [velho.miniatura] : [])]);
       await supabase.from("entrega_arquivos").delete().eq("id", velho.id);
       setLegs(x => ({ ...x, [novo.id]: x[velho.id] || "" }));
       setAntigos(l => l.map(x => x.id === velho.id ? novo : x));
@@ -108,7 +121,7 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
     : <button type="button" className="btn sm" disabled={!!trocando && !trocando.erro} onClick={() => pedirTroca(a)} aria-label={"Trocar " + a.nome}>Trocar</button>;
 
   const tirar = async (a: Arquivo, chave?: string) => {
-    await supabase.storage.from(BUCKET).remove([a.caminho]);
+    await supabase.storage.from(BUCKET).remove([a.caminho, ...(a.miniatura ? [a.miniatura] : [])]);
     await supabase.from("entrega_arquivos").delete().eq("id", a.id);
     if (chave) setEnvios(l => l.filter(e => e.chave !== chave)); else setAntigos(l => l.filter(x => x.id !== a.id));
   };
@@ -228,7 +241,7 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
 
 /* ============ ver a entrega: prévia e download (dono e o próprio funcionário) ============ */
 export function EntregaVer({ d, i, fechar, aprovar, ajuste }: { d: Dados; i: Item; fechar: () => void; aprovar?: () => void; ajuste?: () => void }) {
-  const [arqs, setArqs] = useState<(Arquivo & { url?: string })[] | null>(null);
+  const [arqs, setArqs] = useState<(Arquivo & { url?: string; mini?: string })[] | null>(null);
   const [baixando, setBaixando] = useState(false);
   useEffect(() => {
     (async () => {
@@ -236,7 +249,8 @@ export function EntregaVer({ d, i, fechar, aprovar, ajuste }: { d: Dados; i: Ite
       const vivos = lista.filter(a => !a.removido_em);
       const s = vivos.length ? await supabase.storage.from(BUCKET).createSignedUrls(vivos.map(a => a.caminho), 3600) : { data: [] as any[] };
       const mapa = new Map((s.data || []).map((x: any) => [x.path, x.signedUrl]));
-      setArqs(lista.map(a => ({ ...a, url: mapa.get(a.caminho) as string | undefined })));
+      const minis = await urlsMini(lista.filter(a => a.removido_em && a.miniatura).map(a => a.miniatura!));
+      setArqs(lista.map(a => ({ ...a, url: mapa.get(a.caminho) as string | undefined, mini: a.miniatura ? minis.get(a.miniatura) : undefined })));
     })();
   }, [i.id]);
 
@@ -275,14 +289,14 @@ export function EntregaVer({ d, i, fechar, aprovar, ajuste }: { d: Dados; i: Ite
               {arqs.map(a => (
                 <figure key={a.id}>
                   <div className="ev-prev">
-                    {a.removido_em ? <span className="muted">Arquivo removido para liberar espaço</span>
+                    {a.removido_em ? (a.mini ? <img src={a.mini} alt={a.nome + " (miniatura)"} loading="lazy" /> : <span className="muted">Arquivo removido para liberar espaço</span>)
                       : !a.url ? <span className="muted">Sem prévia</span>
                       : ehVideo(a) ? <video src={a.url} controls preload="metadata" playsInline />
                       : <img src={a.url} alt={a.nome} loading="lazy" />}
                   </div>
                   <figcaption>
                     <span><b>{arqs.length > 1 ? (arqs.indexOf(a) + 1) + ". " : ""}{a.nome}</b><small className="muted">{ext(a.nome)} · {tamanho(a.tamanho)}</small></span>
-                    {!a.removido_em && <button type="button" className="btn sm" onClick={() => baixar(a)}>Baixar</button>}
+                    {!a.removido_em ? <button type="button" className="btn sm" onClick={() => baixar(a)}>Baixar</button> : <small className="muted ev-nodrive">original no Drive</small>}
                   </figcaption>
                   {a.legenda && <Legenda texto={a.legenda} rotulo={"Legenda da imagem " + (arqs.indexOf(a) + 1)} d={d} />}
                 </figure>
@@ -315,29 +329,22 @@ function Legenda({ texto, rotulo, d, grande }: { texto: string; rotulo: string; 
   );
 }
 
-/* ============ limpeza automática (roda quando um dono abre o site) ============ */
-const LIMITE = 800 * 1048576; // começa a limpar perto de 1 GB (plano grátis)
+/* ============ limpeza automática (roda quando um dono abre o site) ============
+   Na virada do mês, o original pesado dos posts de meses passados que já foram aprovados/postados
+   sai do sistema. Só apaga o que o robô já salvou no Google Drive e que já tem miniatura. */
+const LIMITE = 800 * 1048576; // perto de 1 GB (plano grátis): apaga também os mais antigos do mês atual
 const ALVO = 600 * 1048576;
 export async function limparArquivos(): Promise<number> {
   const hoje = new Date();
-  const mes = (dd: Date) => `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}`;
-  const anterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-  const alvoMes = hoje.getDate() >= 28 ? mes(hoje) : mes(anterior);
-  const m = await supabase.from("manutencao").select("valor").eq("chave", "limpeza_mes").maybeSingle();
-  const r = await supabase.from("entrega_arquivos").select("id,caminho,tamanho,criado_em,item_id,itens(status)").is("removido_em", null).order("criado_em");
-  if (r.error || !r.data) return 0;
+  const inicioMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+  const r = await supabase.from("entrega_arquivos").select("id,caminho,tamanho,criado_em,item_id,miniatura,no_drive_em,itens(status,data_post)").is("removido_em", null).order("criado_em");
+  if (r.error || !r.data) return 0; // banco ainda sem as colunas novas: não apaga nada
   const lista = r.data as any[];
-  const finalizado = (a: any) => ["Aprovado", "Postado"].includes(a.itens?.status);
+  const pode = (a: any) => ["Aprovado", "Postado"].includes(a.itens?.status) && !!a.no_drive_em && a.miniatura !== null;
   let total = lista.reduce((s, a) => s + Number(a.tamanho || 0), 0);
   const apagar = new Set<string>();
-  // fim do mês: arquivos de posts aprovados/postados com mais de 30 dias
-  const mensal = (m.data?.valor || "") < alvoMes;
-  if (mensal) {
-    const corte = Date.now() - 30 * 864e5;
-    for (const a of lista) if (finalizado(a) && new Date(a.criado_em).getTime() < corte) { apagar.add(a.id); total -= Number(a.tamanho || 0); }
-  }
-  // perto de lotar: os mais antigos (só de posts já aprovados/postados) até sobrar folga
-  if (total > LIMITE) for (const a of lista) { if (total <= ALVO) break; if (!apagar.has(a.id) && finalizado(a)) { apagar.add(a.id); total -= Number(a.tamanho || 0); } }
+  for (const a of lista) if (pode(a) && String(a.itens?.data_post || "") < inicioMes) { apagar.add(a.id); total -= Number(a.tamanho || 0); }
+  if (total > LIMITE) for (const a of lista) { if (total <= ALVO) break; if (!apagar.has(a.id) && pode(a)) { apagar.add(a.id); total -= Number(a.tamanho || 0); } }
   const sel = lista.filter(a => apagar.has(a.id));
   for (let k = 0; k < sel.length; k += 100) {
     const lote = sel.slice(k, k + 100);
@@ -345,7 +352,7 @@ export async function limparArquivos(): Promise<number> {
     if (rm.error) break;
     await supabase.from("entrega_arquivos").update({ removido_em: new Date().toISOString() }).in("id", lote.map(a => a.id));
   }
-  if (mensal) await supabase.from("manutencao").upsert({ chave: "limpeza_mes", valor: alvoMes, em: new Date().toISOString() });
+  if (sel.length) await supabase.from("manutencao").upsert({ chave: "limpeza_mes", valor: inicioMes.slice(0, 7), em: new Date().toISOString() });
   return sel.length;
 }
 

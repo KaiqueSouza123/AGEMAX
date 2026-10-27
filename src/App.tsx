@@ -14,8 +14,10 @@ import WhatsApp from "./pages/WhatsApp";
 import Aprenda from "./pages/Aprenda";
 import Radar from "./pages/Radar";
 import Links from "./pages/Links";
+import Galeria from "./pages/Galeria";
 import Historico from "./pages/Historico";
 import { limparArquivos } from "./pages/entrega";
+import { gerarMiniaturasQueFaltam } from "./miniatura";
 import BoasVindas from "./pages/BoasVindas";
 import { EVENTO_APRENDA, licoesVistas, viuBoasVindas } from "./aprenda-progresso";
 
@@ -30,13 +32,13 @@ export type Dados = {
 type Grupo = [string, [string, string][]];
 const GRUPOS_DONO: Grupo[] = [
   ["Visão geral", [["painel", "Painel"], ["producao", "Produção"], ["historico", "Histórico"]]],
-  ["Conteúdo", [["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["links", "Links"]]],
+  ["Conteúdo", [["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["galeria", "Galeria"], ["links", "Links"]]],
   ["Clientes e equipe", [["clientes", "Clientes"], ["equipe", "Equipe"]]],
   ["Cobrança", [["whatsapp", "WhatsApp"]]],
   ["Ajuda", [["aprenda", "Aprenda"]]],
 ];
 const GRUPOS_FUNC: Grupo[] = [
-  ["Trabalho", [["minhas", "Minhas demandas"], ["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["links", "Links"]]],
+  ["Trabalho", [["minhas", "Minhas demandas"], ["radar", "Radar da Semana"], ["calendarios", "Calendários"], ["galeria", "Galeria"], ["links", "Links"]]],
   ["Meu mês", [["desempenho", "Meu desempenho"], ["whatsapp", "Meus avisos"]]],
   ["Ajuda", [["aprenda", "Aprenda"]]],
 ];
@@ -51,6 +53,7 @@ const ICONES: Record<string, string> = {
   whatsapp: "M4 5h16v11H8l-4 4z",
   desempenho: "M4 20V10M10 20V4M16 20v-7M22 20H2",
   historico: "M12 7v5l3 2M3 12a9 9 0 1 0 3-6.7M3 4v4h4",
+  galeria: "M4 5h16v14H4zM8 15l3-3 3 3 2-2 4 4M9 9.5h.01",
   links: "M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1",
   aprenda: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 5v16",
 };
@@ -128,7 +131,8 @@ export default function App() {
   // limpeza automática dos arquivos de entrega (fim do mês ou perto de lotar), feita quando um dono abre o site
   useEffect(() => {
     if (me?.papel !== "dono") return;
-    limparArquivos().catch(() => { /* tenta de novo na próxima vez */ });
+    // primeiro faz as miniaturas que faltam; depois tira do sistema o que já está no Drive
+    gerarMiniaturasQueFaltam().catch(() => 0).then(() => limparArquivos()).catch(() => { /* tenta de novo na próxima vez */ });
   }, [me?.id]);
 
   // aba Aprenda: selo NOVO até a primeira lição e boas-vindas no primeiro acesso
@@ -167,7 +171,7 @@ export default function App() {
   const ultimo = semanas.find(s => s.publicado_em);
   const nRadar = ehDono || !ultimo ? 0 : ideias.filter(x => x.semana_id === ultimo.id && !x.visto_em && x.estado === "nova" && veTipo(areaDe(me.funcao), x.formato)).length;
 
-  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda, radar: Radar, links: Links, historico: Historico }[atual];
+  const Pagina = { painel: Painel, producao: Producao, minhas: Minhas, desempenho: Desempenho, calendarios: Calendarios, clientes: Clientes, equipe: Equipe, whatsapp: WhatsApp, aprenda: Aprenda, radar: Radar, links: Links, galeria: Galeria, historico: Historico }[atual];
 
   return (
     <div className="app">

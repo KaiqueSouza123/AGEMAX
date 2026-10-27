@@ -8,6 +8,7 @@ import { ItemForm } from "./tabela";
 import { Renomear } from "./renomear";
 import { cronogramaPDF } from "../pdfCalendario";
 import { BaixarVarios, EntregaVer } from "./entrega";
+import { urlsMini } from "../miniatura";
 
 const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 
@@ -24,7 +25,7 @@ export default function Calendarios({ d }: { d: Dados }) {
   const [gerando, setGerando] = useState(false);
   const [ver, setVer] = useState<Item | null>(null);
   const [lote, setLote] = useState<null | "cli" | "todos">(null);
-  const [capas, setCapas] = useState<Record<number, { url: string; video: boolean; n: number }>>({});
+  const [capas, setCapas] = useState<Record<number, { url: string; video: boolean; n: number; mini: boolean }>>({});
   const c = d.cliente(sel);
   const meuCli = !d.ehDono && c?.responsavel_id === d.me.id;
   const editar = (d.ehDono || meuCli) && editando;
@@ -33,26 +34,29 @@ export default function Calendarios({ d }: { d: Dados }) {
 
   const area = areaDe(d.me.funcao, d.ehDono);
   const its = d.itens.filter(i => i.cliente_id === sel && noMes(i, d.mes) && veTipo(area, i.tipo));
-  // dono: miniatura da primeira imagem entregue de cada post do mês
-  const comArq = d.ehDono ? its.filter(i => (i.n_arquivos || 0) > 0).map(i => i.id) : [];
-  const chaveArq = comArq.join(",") + "|" + its.map(i => (i.n_arquivos || 0)).join(",");
+  // miniatura da primeira arte entregue de cada post do mês (fica mesmo depois que o original sai do sistema)
+  const comArq = its.filter(i => (i.n_arquivos || 0) > 0).map(i => i.id);
+  const chaveArq = comArq.join(",") + "|" + its.map(i => (i.n_arquivos || 0) + i.status).join(",");
   useEffect(() => {
     if (!comArq.length) { setCapas({}); return; }
     let vivo = true;
     (async () => {
-      const r = await supabase.from("entrega_arquivos").select("item_id,caminho,tipo,nome,ordem,criado_em").in("item_id", comArq).is("removido_em", null);
+      let r: any = await supabase.from("entrega_arquivos").select("item_id,caminho,tipo,nome,ordem,criado_em,removido_em,miniatura").in("item_id", comArq);
+      if (r.error) r = await supabase.from("entrega_arquivos").select("item_id,caminho,tipo,nome,ordem,criado_em,removido_em").in("item_id", comArq);
       const lista = (r.data || []) as any[];
       const prim = new Map<number, any>(), cont = new Map<number, number>();
       for (const x of lista.sort((p, q) => (p.ordem ?? 1e9) - (q.ordem ?? 1e9) || String(p.criado_em).localeCompare(q.criado_em))) {
         cont.set(x.item_id, (cont.get(x.item_id) || 0) + 1);
-        if (!prim.has(x.item_id)) prim.set(x.item_id, x);
+        if (!prim.has(x.item_id) && (x.miniatura || !x.removido_em)) prim.set(x.item_id, x);
       }
       const arr = [...prim.values()];
       if (!arr.length) { if (vivo) setCapas({}); return; }
-      const sg = await supabase.storage.from("entregas").createSignedUrls(arr.map(x => x.caminho), 3600);
-      const urls = new Map((sg.data || []).map((x: any) => [x.path, x.signedUrl]));
-      const out: Record<number, { url: string; video: boolean; n: number }> = {};
-      for (const x of arr) { const u = urls.get(x.caminho); if (u) out[x.item_id] = { url: u as string, video: /^video/.test(x.tipo || "") || /\.(mp4|mov|m4v|webm)$/i.test(x.nome), n: cont.get(x.item_id) || 1 }; }
+      const urls = await urlsMini(arr.map(x => x.miniatura || x.caminho));
+      const out: Record<number, { url: string; video: boolean; n: number; mini: boolean }> = {};
+      for (const x of arr) {
+        const u = urls.get(x.miniatura || x.caminho);
+        if (u) out[x.item_id] = { url: u, video: /^video/.test(x.tipo || "") || /\.(mp4|mov|m4v|webm)$/i.test(x.nome), n: cont.get(x.item_id) || 1, mini: !!x.miniatura };
+      }
       if (vivo) setCapas(out);
     })();
     return () => { vivo = false; };
@@ -97,7 +101,7 @@ export default function Calendarios({ d }: { d: Dados }) {
         {ps.map(i => {
           const cp = capas[i.id];
           const st = d.ehDono && i.tipo !== "Prazo do cliente" && ["Entregue", "Aprovado", "Postado", "Ajustes"].includes(i.status) ? i.status : null;
-          const conteudo = <>{d.ehDono && cp && !editar && <span className="p-capa">{cp.video ? <video src={cp.url} muted preload="metadata" /> : <img src={cp.url} alt="" loading="lazy" />}{cp.video && <em>▶</em>}{cp.n > 1 && <i>{cp.n}</i>}</span>}
+          const conteudo = <>{cp && !editar && <span className="p-capa">{cp.video && !cp.mini ? <video src={cp.url} muted preload="metadata" /> : <img src={cp.url} alt="" loading="lazy" />}{cp.video && <em>▶</em>}{cp.n > 1 && <i>{cp.n}</i>}</span>}
             <b>{i.tipo.toUpperCase()}</b>{i.tema}{editar && i.tipo !== "Prazo do cliente" && <small>{d.pessoa(i.responsavel_id)?.nome || "sem responsável"}</small>}
             {st && !editar && <span className={"p-st st-" + (st === "Entregue" ? "aprovar" : st === "Ajustes" ? "ajuste" : "ok")}>{st === "Entregue" ? "Aprovar" : st}</span>}</>;
           const cls = "p" + (i.tipo === "Prazo do cliente" ? " pz" : "") + (arrastando === String(i.id) ? " drag" : "");

@@ -204,9 +204,12 @@ const FAQ_FUNC = [
   ["Posso criar, mudar a data ou apagar um post?", "Sim, nos clientes que são seus. Em Minhas demandas use + Novo post, ou abra um post e clique em Editar nome, data ou excluir. Em Calendários, escolha seu cliente e clique em Editar para arrastar posts de dia. Só dá para excluir post que ainda não foi entregue."],
   ["Onde fica a pasta do Drive do cliente?", "Na aba Links. Lá ficam as pastas e links de cada cliente. Se faltar um ou estiver errado, clique em + link ou Editar: todo mundo pode corrigir."],
   ["Onde coloco a legenda do post?", "Na tela de entregar, no campo Legenda do Instagram. Em carrossel ou vários posts juntos, cada imagem ganha a própria legenda. O dono copia direto de lá na hora de postar."],
+  ["Onde vejo as artes que já entreguei?", "Na aba Galeria. Escolha o cliente e o mês. As artes antigas aparecem em miniatura; o arquivo original fica guardado no Google Drive da Agemax."],
   ["Quem vê as minhas entregas?", "Você e os donos da Agemax. Os outros funcionários não veem o seu quadro."],
 ];
 const FAQ_DONO = [
+  ["Por que algumas artes aparecem só em miniatura?", "Para o sistema não lotar (o plano grátis tem 1 GB). Na virada do mês, o original dos posts aprovados ou postados de meses passados sai do sistema, mas só depois que o robô salvou no Google Drive. A miniatura fica para sempre na Galeria e no Calendário. Para mandar no WhatsApp como foto, o robô pega a cópia do Drive."],
+  ["Onde vejo todas as artes de um cliente?", "Na aba Galeria: filtre por cliente e mês. Embaixo aparece também o Arquivo antigo, a pasta do Drive antigo do cliente (a que está na aba Links)."],
   ["O funcionário não vê os posts.", "Confira se os posts estão no nome dele (Produção ou Calendários › Editar). Trocar o responsável do cliente leva junto os posts em aberto."],
   ["Como dar acesso a alguém novo?", "Cadastre o e-mail em Equipe. A pessoa entra no site, clica em Primeiro acesso e cria a senha."],
   ["Como sei quem mudou alguma coisa?", "Na aba Histórico (Visão geral). Tudo que alguém cria, muda ou apaga aparece lá com o nome da pessoa, o horário e o antes e depois. Dá para filtrar por pessoa, cliente e período."],
