@@ -779,3 +779,14 @@ dialog:has(.pf){width:min(520px,94vw)}
 .gl-antigo p{margin:2px 0 0}
 .gl-antigo iframe{width:100%;height:560px;border:1px solid var(--line);border-radius:10px;background:#fff}
 @media (max-width:640px){.gl-grade{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.gl-filtros select{flex:1 1 140px}.gl-antigo iframe{height:440px}}
+
+/* fases dos posts no calendário */
+.p-st.st-fazer{background:#F2C230;color:#1A1400}
+.p-st.st-aguarda{background:#2F6FE4;color:#fff}
+.p-st.st-ok{background:#1F9D55;color:#fff}
+.p-st.st-ajuste{background:#E5484D;color:#fff}
+.calgrid .p.meu{cursor:pointer}
+.calgrid .p.meu:hover{outline:2px solid var(--gold);outline-offset:1px}
+.cal-acao .p-st{font-size:11px;padding:3px 9px}
+.cal-brief{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.cal-brief p{margin:4px 0 0;white-space:pre-wrap}

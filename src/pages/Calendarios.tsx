@@ -7,10 +7,16 @@ import { Head, MesNav, Modal } from "../ui";
 import { ItemForm } from "./tabela";
 import { Renomear } from "./renomear";
 import { cronogramaPDF } from "../pdfCalendario";
-import { BaixarVarios, EntregaVer } from "./entrega";
+import { BaixarVarios, EntregaForm, EntregaVer } from "./entrega";
 import { urlsMini } from "../miniatura";
 
 const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+// fase de cada post no calendário: a fazer (amarelo) › aguardando aprovação (azul) › aprovado (verde)
+const FASE: Record<string, { t: string; c: string }> = {
+  "A fazer": { t: "A fazer", c: "st-fazer" }, "Em produção": { t: "A fazer", c: "st-fazer" },
+  "Ajustes": { t: "Ajuste pedido", c: "st-ajuste" }, "Entregue": { t: "Aguardando aprovação", c: "st-aguarda" },
+  "Aprovado": { t: "Aprovado", c: "st-ok" }, "Postado": { t: "Postado", c: "st-ok" },
+};
 
 export default function Calendarios({ d }: { d: Dados }) {
   let clis = d.clientes.filter(c => c.ativo);
@@ -24,6 +30,9 @@ export default function Calendarios({ d }: { d: Dados }) {
   const [alvo, setAlvo] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
   const [ver, setVer] = useState<Item | null>(null);
+  const [acao, setAcao] = useState<Item | null>(null);
+  const [entregar, setEntregar] = useState<Item | null>(null);
+  const [verMeu, setVerMeu] = useState<Item | null>(null);
   const [lote, setLote] = useState<null | "cli" | "todos">(null);
   const [capas, setCapas] = useState<Record<number, { url: string; video: boolean; n: number; mini: boolean }>>({});
   const c = d.cliente(sel);
@@ -100,10 +109,10 @@ export default function Calendarios({ d }: { d: Dados }) {
         <span className="dn">{dn}</span>
         {ps.map(i => {
           const cp = capas[i.id];
-          const st = d.ehDono && i.tipo !== "Prazo do cliente" && ["Entregue", "Aprovado", "Postado", "Ajustes"].includes(i.status) ? i.status : null;
+          const st = i.tipo !== "Prazo do cliente" ? FASE[i.status] || FASE["A fazer"] : null;
           const conteudo = <>{cp && !editar && <span className="p-capa">{cp.video && !cp.mini ? <video src={cp.url} muted preload="metadata" /> : <img src={cp.url} alt="" loading="lazy" />}{cp.video && <em>▶</em>}{cp.n > 1 && <i>{cp.n}</i>}</span>}
             <b>{i.tipo.toUpperCase()}</b>{i.tema}{editar && i.tipo !== "Prazo do cliente" && <small>{d.pessoa(i.responsavel_id)?.nome || "sem responsável"}</small>}
-            {st && !editar && <span className={"p-st st-" + (st === "Entregue" ? "aprovar" : st === "Ajustes" ? "ajuste" : "ok")}>{st === "Entregue" ? "Aprovar" : st}</span>}</>;
+            {st && <span className={"p-st " + st.c}>{st.t}</span>}</>;
           const cls = "p" + (i.tipo === "Prazo do cliente" ? " pz" : "") + (arrastando === String(i.id) ? " drag" : "");
           return editar && mexe(i)
             ? <button type="button" className={cls} key={i.id} draggable title="Clique para editar ou arraste para outro dia"
@@ -113,7 +122,7 @@ export default function Calendarios({ d }: { d: Dados }) {
             : d.ehDono && temArte(i)
               ? <button type="button" className={cls + " com-arte"} key={i.id} title="Ver a entrega, baixar e aprovar" onClick={() => setVer(i)}>{conteudo}</button>
             : !d.ehDono && i.responsavel_id === d.me.id && i.tipo !== "Prazo do cliente"
-              ? <button type="button" className={cls} key={i.id} title="Clique para trocar o nome do post" onClick={() => setRenPost(i)}>{conteudo}</button>
+              ? <button type="button" className={cls + " meu"} key={i.id} title={["A fazer", "Em produção", "Ajustes"].includes(i.status) ? "Clique para entregar a arte" : "Clique para ver a entrega"} onClick={() => setAcao(i)}>{conteudo}</button>
               : <div className={cls} key={i.id}>{conteudo}</div>;
         })}
         {editar && <button type="button" className="add" aria-label={`Adicionar post no dia ${dn}`}
@@ -126,7 +135,7 @@ export default function Calendarios({ d }: { d: Dados }) {
   return (
     <>
       <Head eb="calendários" t="Cronograma de conteúdos"
-        sub={d.ehDono && !editar ? "Os posts do cliente no formato do calendário. Clique num post entregue para ver a arte, baixar e aprovar." : editar && !d.ehDono ? "Clique num post seu para mudar nome, data ou excluir. Arraste para trocar o dia ou use “+ post”." : !d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para trocar o nome dele. Nos clientes que são seus, use Editar para criar, mover ou excluir posts." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
+        sub={d.ehDono && !editar ? "Os posts do cliente no formato do calendário. Clique num post entregue para ver a arte, baixar e aprovar." : editar && !d.ehDono ? "Clique num post seu para mudar nome, data ou excluir. Arraste para trocar o dia ou use “+ post”." : !d.ehDono ? "Os calendários dos clientes que estão com você. Clique num post seu para entregar a arte ou ver a entrega. Nos clientes que são seus, use Editar para criar, mover, mudar o tipo ou excluir posts." : editar ? "Clique num post para editar, arraste para trocar o dia ou use “+ post”. A mudança aparece na hora para quem produz." : "Os posts lançados na produção, no formato do calendário do cliente."}
         right={<div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <button type="button" className="btn" disabled={gerando || !c} onClick={async () => {
             if (!c) return; setGerando(true);
@@ -174,6 +183,34 @@ export default function Calendarios({ d }: { d: Dados }) {
         {ver && <EntregaVer d={d} i={ver} fechar={() => setVer(null)}
           aprovar={ver.status === "Entregue" ? () => aprovar(ver, "Aprovado") : undefined}
           ajuste={ver.status === "Entregue" ? () => aprovar(ver, "Ajustes") : undefined} />}
+      </Modal>
+      <Modal open={!!acao} onClose={() => setAcao(null)}>
+        {acao && (() => {
+          const f = FASE[acao.status] || FASE["A fazer"];
+          const aFazer = ["A fazer", "Em produção", "Ajustes"].includes(acao.status);
+          const fechado = ["Aprovado", "Postado"].includes(acao.status);
+          return (
+            <div className="form cal-acao">
+              <div>
+                <span className={"p-st " + f.c}>{f.t}</span>
+                <h2 style={{ marginTop: 8 }}>{acao.tema}</h2>
+                <p className="muted" style={{ margin: 0 }}>{c?.nome} · {acao.tipo} · post {acao.data_post.slice(8, 10)}/{acao.data_post.slice(5, 7)}</p>
+              </div>
+              {acao.briefing && <div className="cal-brief"><b>Briefing</b><p>{acao.briefing}</p></div>}
+              <div className="acts" style={{ flexWrap: "wrap" }}>
+                <button type="button" className="btn" onClick={() => { setRenPost(acao); setAcao(null); }}>Trocar o nome</button>
+                {temArte(acao) && <button type="button" className="btn" onClick={() => { setVerMeu(acao); setAcao(null); }}>Ver entrega</button>}
+                {!fechado && <button type="button" className="btn gold" onClick={() => { setEntregar(acao); setAcao(null); }}>{acao.status === "Ajustes" ? "Reenviar arte" : aFazer ? "Entregar arte" : "Trocar arquivos"}</button>}
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+      <Modal open={!!entregar} onClose={() => setEntregar(null)}>
+        {entregar && <EntregaForm d={d} i={entregar} fechar={() => setEntregar(null)} />}
+      </Modal>
+      <Modal open={!!verMeu} onClose={() => setVerMeu(null)}>
+        {verMeu && <EntregaVer d={d} i={verMeu} fechar={() => setVerMeu(null)} />}
       </Modal>
       <Modal open={!!form} onClose={() => setForm(null)}>
         {form && <ItemForm key={form.id || "novo-" + form.data_post} d={d} item={form} fechar={() => setForm(null)} />}
