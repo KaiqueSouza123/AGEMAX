@@ -113,7 +113,7 @@ export default function Calendarios({ d }: { d: Dados }) {
           const conteudo = <>{cp && !editar && <span className="p-capa">{cp.video && !cp.mini ? <video src={cp.url} muted preload="metadata" /> : <img src={cp.url} alt="" loading="lazy" />}{cp.video && <em>▶</em>}{cp.n > 1 && <i>{cp.n}</i>}</span>}
             <b>{i.tipo.toUpperCase()}</b>{i.tema}{editar && i.tipo !== "Prazo do cliente" && <small>{d.pessoa(i.responsavel_id)?.nome || "sem responsável"}</small>}
             {st && <span className={"p-st " + st.c}>{st.t}</span>}</>;
-          const cls = "p" + (i.tipo === "Prazo do cliente" ? " pz" : "") + (arrastando === String(i.id) ? " drag" : "");
+          const cls = "p" + (i.tipo === "Prazo do cliente" ? " pz" : /reels|v[ií]deo/i.test(i.tipo) ? " rl" : "") + (arrastando === String(i.id) ? " drag" : "");
           return editar && mexe(i)
             ? <button type="button" className={cls} key={i.id} draggable title="Clique para editar ou arraste para outro dia"
                 onDragStart={e => { e.dataTransfer.setData("text/plain", String(i.id)); e.dataTransfer.effectAllowed = "move"; setArrastando(String(i.id)); }}

@@ -790,3 +790,7 @@ dialog:has(.pf){width:min(520px,94vw)}
 .cal-acao .p-st{font-size:11px;padding:3px 9px}
 .cal-brief{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .cal-brief p{margin:4px 0 0;white-space:pre-wrap}
+/* reels e vídeos: quadradinho verde no calendário */
+.calgrid .p.rl,.calgrid button.p.rl{background:#1F9D55;color:#fff}
+.calgrid .p.rl b{color:#E7FFEF}
+.calgrid .p.rl small{color:#D4F5E0}

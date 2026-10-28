@@ -11,7 +11,9 @@ const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "O
 const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 const PLURAL: Record<string, string> = { "Estático": "ESTÁTICOS", "Carrossel": "CARROSSÉIS", "Reels": "REELS", "Stories": "STORIES", "Vídeo": "VÍDEOS" };
 
-type Bloco = { tipo: string; texto: string; estilo: "normal" | "data" | "prazo" };
+type Bloco = { tipo: string; texto: string; estilo: "normal" | "data" | "prazo" | "reels" };
+const VERDE = "#1F9D55"; // reels e vídeos: célula verde
+const ehReels = (tipo: string) => /reels|v[ií]deo/i.test(tipo);
 
 export const slug = (s: string) => s.normalize("NFKD").replace(/[^\x00-\x7f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/^-+|-+$/g, "");
 
@@ -120,7 +122,7 @@ export async function cronogramaPDF(o: { cliente: Cliente; mes: string; itens: I
   for (const i of ordenados) {
     const dia = Number(i.data_post.slice(8, 10));
     const prazo = i.tipo === "Prazo do cliente";
-    const b: Bloco = { tipo: prazo ? "PRAZO DO CLIENTE" : i.tipo, texto: i.tema, estilo: prazo ? "prazo" : ehData(i) ? "data" : "normal" };
+    const b: Bloco = { tipo: prazo ? "PRAZO DO CLIENTE" : i.tipo, texto: i.tema, estilo: prazo ? "prazo" : ehReels(i.tipo) ? "reels" : ehData(i) ? "data" : "normal" };
     porDia.set(dia, [...(porDia.get(dia) || []), b]);
   }
 
@@ -130,7 +132,7 @@ export async function cronogramaPDF(o: { cliente: Cliente; mes: string; itens: I
     const x0 = GX0 + COL_W * k, y0 = GY0 + HEAD_H + ROW_H * r, x1 = x0 + COL_W, y1 = y0 + ROW_H;
     const its = valido ? porDia.get(dia) || [] : [];
     const est = new Set(its.map(x => x.estilo));
-    const fill = !valido ? CINZA : est.has("prazo") ? DEST : est.has("data") ? PRIM : "#FFFFFF";
+    const fill = !valido ? CINZA : est.has("prazo") ? DEST : est.has("reels") ? VERDE : est.has("data") ? PRIM : "#FFFFFF";
     ctx.fillStyle = fill; ctx.fillRect(x0, y0, COL_W, ROW_H);
     if (valido) {
       ctx.font = `400 ${17 * S}px Poppins, sans-serif`; ctx.fillStyle = fill === "#FFFFFF" ? "#1E1E1E" : "#FFFFFF";
