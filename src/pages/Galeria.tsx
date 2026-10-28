@@ -5,6 +5,7 @@ import { Item, areaDe, mesLabel, veTipo } from "../regras";
 import { Head, Modal } from "../ui";
 import { EntregaVer } from "./entrega";
 import { urlsMini } from "../miniatura";
+import { ArtesExtras } from "./extras";
 
 type Arq = { id: string; item_id: number; caminho: string; nome: string; tipo: string | null; ordem: number | null; criado_em: string; removido_em: string | null; miniatura?: string | null };
 type Card = { i: Item; capa?: string; video: boolean; n: number; soMini: boolean };
@@ -137,6 +138,8 @@ export default function Galeria({ d }: { d: Dados }) {
             </div>
           </section>
         ))}
+
+      {cliOk && <ArtesExtras d={d} clienteId={cliOk} galeria />}
 
       {cliOk && pasta && (
         <section className="gl-antigo">

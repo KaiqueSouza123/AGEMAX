@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
 import { Item, temArte, alerta, ordenar, placar, noMes, hojeSP, iso, dt, fmt, fmtw, prazoDe, areaDe, veTipo } from "../regras";
-import { Head, Modal, useBusy } from "../ui";
+import { Head, MesNav, Modal, useBusy } from "../ui";
+import { ArtesExtras } from "./extras";
 import { EntregaForm, EntregaVer } from "./entrega";
 import { Renomear } from "./renomear";
 import { ItemForm } from "./tabela";
@@ -30,7 +31,22 @@ function rotuloPrazo(i: Item): { txt: string; cls: string } {
   return { txt: verbo + " até " + fmtw(p), cls: "" };
 }
 
+const DIAS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
+const ROT: Record<string, string> = { "Estático": "FEED", "Carrossel": "CARROSSEL", "Reels": "REELS", "Vídeo": "VÍDEO", "Stories": "STORY" };
+// fase de cada post no calendário do funcionário
+const FASE: Record<string, { t: string; c: string }> = {
+  "A fazer": { t: "Entregar", c: "f-fazer" }, "Em produção": { t: "Entregar", c: "f-fazer" },
+  "Ajustes": { t: "Ajustar", c: "f-ajuste" }, "Entregue": { t: "Em aprovação", c: "f-aguarda" },
+  "Aprovado": { t: "Aprovado", c: "f-ok" }, "Postado": { t: "Postado", c: "f-ok" },
+};
+const lerVista = () => { try { return localStorage.getItem("minhas-vista") === "lista" ? "lista" : "cal"; } catch { return "cal"; } };
+
 export default function Minhas({ d }: { d: Dados }) {
+  const [vista, setVista] = useState<"cal" | "lista">(lerVista);
+  useEffect(() => { try { localStorage.setItem("minhas-vista", vista); } catch { /* sem armazenamento */ } }, [vista]);
+  const [acao, setAcao] = useState<Item | null>(null);
+  const [arrastando, setArrastando] = useState<number | null>(null);
+  const [alvoDia, setAlvoDia] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<string>("");
   const [tipoF, setTipoF] = useState<string>("");
   const [entregar, setEntregar] = useState<Item | null>(null);
@@ -64,8 +80,12 @@ export default function Minhas({ d }: { d: Dados }) {
   return (
     <>
       <Head eb={"olá, " + d.me.nome.split(" ")[0]} t="Minhas demandas"
-        sub="Cada arte anda da esquerda para a direita. Seu trabalho termina quando ela chega em Aguardando aprovação."
+        sub={vista === "cal" ? "Seu mês no calendário. Clique em Entregar no post, ou arraste o post para outro dia." : "Cada arte anda da esquerda para a direita. Seu trabalho termina quando ela chega em Aguardando aprovação."}
         right={<div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
+          <div className="kfiltro mvista" role="group" aria-label="Como ver">
+            <button type="button" aria-pressed={vista === "cal"} onClick={() => setVista("cal")}>Calendário</button>
+            <button type="button" aria-pressed={vista === "lista"} onClick={() => setVista("lista")}>Lista</button>
+          </div>
           {meusClientes.length > 0 && <button type="button" className="btn pri sm" onClick={() => setForm({ cliente_id: filtro && meusClientes.some(c => c.id === filtro) ? filtro : meusClientes[0].id, data_post: iso(hojeSP()), responsavel_id: d.me.id })}>+ Novo post</button>}
           {clientes.length > 1 && (
           <div className="kfiltro" role="group" aria-label="Filtrar por cliente">
@@ -91,11 +111,74 @@ export default function Minhas({ d }: { d: Dados }) {
         ? <div className="panel empty">Nenhuma demanda com você ainda. Quando o dono lançar os posts do mês, eles aparecem aqui.</div>
         : (
           <>
-          {filtro && !clientes.find(c => c.id === filtro)?.n && (
+          {vista === "lista" && filtro && !clientes.find(c => c.id === filtro)?.n && (
             <div className="panel empty" style={{ marginBottom: 12 }}>
               <b>Tudo em dia com {d.cliente(filtro)?.nome}.</b> {(() => { const n = minhas.filter(i => i.cliente_id === filtro && noMes(i, mesAtual) && ["Aprovado", "Postado"].includes(i.status)).length; return n ? `${n} post${n > 1 ? "s" : ""} deste mês já aprovado${n > 1 ? "s" : ""}. ` : ""; })()}O cliente continua com você: quando houver post novo, ele aparece aqui.
             </div>
           )}
+          {vista === "cal" ? (() => {
+            const doMesCal = minhas.filter(i => noMes(i, d.mes) && (!filtro || i.cliente_id === filtro) && (!tipoA || i.tipo === tipoA));
+            const [a, m] = d.mes.split("-").map(Number);
+            const nd = new Date(a, m, 0).getDate(), off = new Date(a, m - 1, 1, 12).getDay();
+            const semanas = Math.ceil((off + nd) / 7);
+            const hojeIso = iso(hojeSP());
+            const podeMover = (i: Item) => d.cliente(i.cliente_id)?.responsavel_id === d.me.id;
+            const mover = async (id: number, dia: string) => {
+              const it = d.itens.find(x => x.id === id);
+              if (!it || it.data_post === dia) return;
+              if (!podeMover(it)) { d.aviso("Só dá para mudar a data dos posts dos clientes que são seus."); return; }
+              const r = await supabase.from("itens").update({ data_post: dia }).eq("id", it.id);
+              if (r.error) { d.aviso("Não deu certo: " + r.error.message); return; }
+              d.aviso(`Post movido para ${dia.slice(8)}/${dia.slice(5, 7)}`);
+              d.recarregar();
+            };
+            const cel = [];
+            for (let k = 0; k < semanas * 7; k++) {
+              const dn = k - off + 1;
+              if (dn < 1 || dn > nd) { cel.push(<div className="mc-d fora" key={k} aria-hidden="true" />); continue; }
+              const dia = `${d.mes}-${String(dn).padStart(2, "0")}`;
+              const ps = doMesCal.filter(i => i.data_post === dia);
+              cel.push(
+                <div key={k} className={"mc-d" + (ps.length ? "" : " vazio") + (dia === hojeIso ? " hoje" : "") + (alvoDia === dia ? " alvo" : "")}
+                  onDragOver={e => { if (arrastando === null) return; e.preventDefault(); if (alvoDia !== dia) setAlvoDia(dia); }}
+                  onDragLeave={() => setAlvoDia(x => (x === dia ? null : x))}
+                  onDrop={e => { e.preventDefault(); setAlvoDia(null); setArrastando(null); const id = Number(e.dataTransfer.getData("text/plain")); if (id) mover(id, dia); }}>
+                  <span className="mc-n"><em>{DIAS[k % 7].toLowerCase()}</em>{dn}</span>
+                  {ps.map(i => {
+                    const f = FASE[i.status] || FASE["A fazer"];
+                    const clique = () => (["A fazer", "Em produção", "Ajustes"].includes(i.status) ? setEntregar(i) : temArte(i) ? setVer(i) : setAcao(i));
+                    return (
+                      <div key={i.id} className={"mc-t" + (arrastando === i.id ? " drag" : "") + (podeMover(i) ? " movel" : "")} draggable={podeMover(i)}
+                        onDragStart={e => { e.dataTransfer.setData("text/plain", String(i.id)); e.dataTransfer.effectAllowed = "move"; setArrastando(i.id); }}
+                        onDragEnd={() => { setArrastando(null); setAlvoDia(null); }}
+                        title={podeMover(i) ? "Segure e arraste para outro dia" : undefined}>
+                        <button type="button" className="mc-corpo" onClick={() => setAcao(i)}>
+                          <b>{ROT[i.tipo] || i.tipo.toUpperCase()}</b>
+                          <small>{i.tema}</small>
+                          {!filtro && <i>{d.cliente(i.cliente_id)?.nome}</i>}
+                        </button>
+                        <button type="button" className={"mc-pill " + f.c} onClick={clique}>{f.t}</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+            const cliExtra = filtro || (clientes.length === 1 ? clientes[0].id : "");
+            return (
+              <div className="mc-wrap">
+                <div className="mc">
+                  <div className="mc-top"><MesNav mes={d.mes} setMes={d.setMes} /><span className="muted">{doMesCal.length} post(s){filtro ? " de " + d.cliente(filtro)?.nome : ""}</span></div>
+                  <div className="mc-grid">{DIAS.map(x => <div className="mc-h" key={x}>{x}</div>)}{cel}</div>
+                  {doMesCal.length === 0 && <div className="kvazio" style={{ marginTop: 10 }}>Nenhum post seu neste mês{filtro ? " para este cliente" : ""}.</div>}
+                </div>
+                <aside className="mc-lado">
+                  {cliExtra ? <ArtesExtras d={d} clienteId={cliExtra} />
+                    : <section className="ax"><div className="ax-top"><h2>Artes extras</h2></div><p className="muted ax-dica">Escolha um cliente lá em cima para ver e anexar as artes fixas dele (Story bom dia, boa semana, dia chuvoso…).</p></section>}
+                </aside>
+              </div>
+            );
+          })() : (
           <div className="kanban">
             {COLUNAS.map(col => {
               const cards = vis.filter(i => col.status.includes(i.status));
@@ -138,8 +221,32 @@ export default function Minhas({ d }: { d: Dados }) {
               );
             })}
           </div>
+          )}
           </>
         )}
+      <Modal open={!!acao} onClose={() => setAcao(null)}>
+        {acao && (() => {
+          const f = FASE[acao.status] || FASE["A fazer"], c = d.cliente(acao.cliente_id);
+          const aFazer = ["A fazer", "Em produção", "Ajustes"].includes(acao.status), fechado = ["Aprovado", "Postado"].includes(acao.status);
+          return (
+            <div className="form cal-acao">
+              <div>
+                <span className={"mc-pill " + f.c} style={{ display: "inline-block" }}>{f.t}</span>
+                <h2 style={{ marginTop: 8 }}>{acao.tema}</h2>
+                <p className="muted" style={{ margin: 0 }}>{c?.nome} · {acao.tipo} · post {fmtw(dt(acao.data_post))}{aFazer ? " · " + rotuloPrazo(acao).txt : ""}</p>
+              </div>
+              {acao.briefing && <div className="cal-brief"><b>Briefing</b><p>{acao.briefing}</p></div>}
+              <div className="acts" style={{ flexWrap: "wrap" }}>
+                {c?.responsavel_id === d.me.id
+                  ? <button type="button" className="btn" onClick={() => { setForm(acao); setAcao(null); }}>Editar nome, data ou tipo</button>
+                  : <button type="button" className="btn" onClick={() => { setRenomear(acao); setAcao(null); }}>Trocar o nome</button>}
+                {temArte(acao) && <button type="button" className="btn" onClick={() => { setVer(acao); setAcao(null); }}>Ver entrega</button>}
+                {!fechado && <button type="button" className="btn gold" onClick={() => { setEntregar(acao); setAcao(null); }}>{acao.status === "Ajustes" ? "Reenviar arte" : aFazer ? "Entregar arte" : "Trocar arquivos"}</button>}
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
       <Modal open={!!entregar} onClose={() => setEntregar(null)}>
         {entregar && <EntregaForm d={d} i={entregar} fechar={() => setEntregar(null)} />}
       </Modal>

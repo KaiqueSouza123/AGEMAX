@@ -61,15 +61,15 @@ export async function miniDeArquivo(f: File): Promise<Blob | null> {
 }
 
 /** sobe a miniatura e devolve o caminho no armazenamento (ou null se não deu) */
-export async function subirMini(itemId: number, mini: Blob | null): Promise<string | null> {
+export async function subirMini(pasta: number | string, mini: Blob | null): Promise<string | null> {
   if (!mini) return null;
-  const caminho = `${itemId}/mini/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${mini.type === "image/webp" ? "webp" : "jpg"}`;
+  const caminho = `${pasta}/mini/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${mini.type === "image/webp" ? "webp" : "jpg"}`;
   const r = await supabase.storage.from(BUCKET).upload(caminho, mini, { contentType: mini.type, upsert: false });
   return r.error ? null : caminho;
 }
 
-export async function miniDoUpload(itemId: number, f: File): Promise<string | null> {
-  try { return await subirMini(itemId, await miniDeArquivo(f)); } catch { return null; }
+export async function miniDoUpload(pasta: number | string, f: File): Promise<string | null> {
+  try { return await subirMini(pasta, await miniDeArquivo(f)); } catch { return null; }
 }
 
 /** dono: cria as miniaturas dos arquivos que já estavam no sistema antes (roda em segundo plano) */
