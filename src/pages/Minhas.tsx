@@ -132,6 +132,8 @@ export default function Minhas({ d }: { d: Dados }) {
               d.aviso(`Post movido para ${dia.slice(8)}/${dia.slice(5, 7)}`);
               d.recarregar();
             };
+            // "+ Novo post" nos dias vazios: no cliente filtrado (se for seu) ou no seu primeiro cliente
+            const cliNovo = filtro ? (meusClientes.some(c => c.id === filtro) ? filtro : "") : meusClientes[0]?.id || "";
             const cel = [];
             for (let k = 0; k < semanas * 7; k++) {
               const dn = k - off + 1;
@@ -144,6 +146,10 @@ export default function Minhas({ d }: { d: Dados }) {
                   onDragLeave={() => setAlvoDia(x => (x === dia ? null : x))}
                   onDrop={e => { e.preventDefault(); setAlvoDia(null); setArrastando(null); const id = Number(e.dataTransfer.getData("text/plain")); if (id) mover(id, dia); }}>
                   <span className="mc-n"><em>{DIAS[k % 7].toLowerCase()}</em>{dn}</span>
+                  {!ps.length && cliNovo && (
+                    <button type="button" className="mc-novo" onClick={() => setForm({ cliente_id: cliNovo, data_post: dia, responsavel_id: d.me.id, tipo: area === "video" ? "Reels" : "Estático" })}
+                      aria-label={`Novo post no dia ${dn}`}>+ Novo post</button>
+                  )}
                   {ps.map(i => {
                     const f = FASE[i.status] || FASE["A fazer"];
                     const clique = () => (["A fazer", "Em produção", "Ajustes"].includes(i.status) ? setEntregar(i) : temArte(i) ? setVer(i) : setAcao(i));
