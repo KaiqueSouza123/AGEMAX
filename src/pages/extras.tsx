@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../supabase";
 import type { Dados } from "../App";
 import { miniDoUpload, urlsMini } from "../miniatura";
+import { enviarArquivo } from "../upload";
 
 type Extra = { id: number; cliente_id: string; nome: string; ordem: number };
 type ArqE = { id: string; extra_id: number; caminho: string; nome: string; tipo: string | null; tamanho: number; miniatura: string | null; criado_em: string };
@@ -61,8 +62,7 @@ export function ArtesExtras({ d, clienteId, galeria }: { d: Dados; clienteId: st
       if (!/^(image|video)\//.test(f.type)) { setErro(f.name + ": só imagem ou vídeo."); continue; }
       if (f.size > MAX) { setErro(f.name + ": passa de 50 MB."); continue; }
       const caminho = `extras/${id}/${Date.now()}-${nomeSeguro(f.name)}`;
-      const up = await supabase.storage.from(BUCKET).upload(caminho, f, { contentType: f.type });
-      if (up.error) { setErro("Não consegui enviar " + f.name + ": " + up.error.message); continue; }
+      try { await enviarArquivo(BUCKET, caminho, f, f.type); } catch (e: any) { setErro(f.name + ": " + (e.message || "não consegui enviar")); continue; }
       const miniatura = await miniDoUpload(`extras/${id}`, f);
       const r = await supabase.from("artes_extras_arquivos").insert({ extra_id: id, caminho, nome: f.name, tipo: f.type, tamanho: f.size, miniatura });
       if (r.error) { await supabase.storage.from(BUCKET).remove([caminho, ...(miniatura ? [miniatura] : [])]); setErro("Não consegui salvar " + f.name + ": " + r.error.message); }

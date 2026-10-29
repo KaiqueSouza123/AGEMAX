@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { SUPA_KEY, SUPA_URL, supabase } from "../supabase";
+import { supabase } from "../supabase";
 import type { Dados } from "../App";
 import { Item, dt, fmtw, temArte } from "../regras";
 import { useBusy } from "../ui";
 import { miniDoUpload, urlsMini } from "../miniatura";
+import { enviarArquivo } from "../upload";
 
 export type Arquivo = { id: string; item_id: number; caminho: string; nome: string; tipo: string | null; tamanho: number; criado_em: string; removido_em: string | null; legenda?: string | null; ordem?: number | null; miniatura?: string | null; no_drive_em?: string | null };
 const MAX = 50 * 1024 * 1024;
@@ -20,20 +21,9 @@ export async function listarArquivos(itemId: number): Promise<Arquivo[]> {
   return ((r.data || []) as Arquivo[]).sort((a, b) => (a.ordem ?? 1e9) - (b.ordem ?? 1e9) || a.criado_em.localeCompare(b.criado_em));
 }
 
-// envio com barra de progresso (a biblioteca do Supabase não informa o progresso)
-function enviar(caminho: string, arq: File, token: string, progresso: (p: number) => void): Promise<void> {
-  return new Promise((ok, erro) => {
-    const x = new XMLHttpRequest();
-    x.open("POST", `${SUPA_URL}/storage/v1/object/${BUCKET}/${caminho}`);
-    x.setRequestHeader("Authorization", "Bearer " + token);
-    x.setRequestHeader("apikey", SUPA_KEY);
-    x.setRequestHeader("x-upsert", "false");
-    x.setRequestHeader("Content-Type", arq.type || "application/octet-stream");
-    x.upload.onprogress = e => { if (e.lengthComputable) progresso(e.loaded / e.total); };
-    x.onload = () => x.status < 300 ? ok() : erro(new Error(x.status === 413 ? "Arquivo maior que 50 MB." : "Não consegui enviar (" + x.status + ")."));
-    x.onerror = () => erro(new Error("Sem conexão. Tente de novo."));
-    x.send(arq);
-  });
+// envio retomável (aguenta oscilação da internet), com barra de progresso
+function enviar(caminho: string, arq: File, _token: string, progresso: (p: number) => void): Promise<void> {
+  return enviarArquivo(BUCKET, caminho, arq, arq.type, progresso);
 }
 
 // grava o arquivo no banco; se o banco ainda não tiver a coluna da miniatura, grava sem ela
@@ -63,6 +53,8 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
   const alvoTroca = useRef<Arquivo | null>(null);
 
   useEffect(() => { listarArquivos(i.id).then(a => { const v = a.filter(x => !x.removido_em); setAntigos(v); setLegs(Object.fromEntries(v.map(x => [x.id, x.legenda || ""]))); }); }, [i.id]);
+  const enviosRef = useRef<Envio[]>([]);
+  useEffect(() => { enviosRef.current = envios; }, [envios]);
   const atualizar = (chave: string, p: Partial<Envio>) => setEnvios(l => l.map(e => e.chave === chave ? { ...e, ...p } : e));
 
   const escolher = async (lista: File[]) => {
@@ -72,11 +64,14 @@ export function EntregaForm({ d, i, fechar }: { d: Dados; i: Item; fechar: () =>
     const token = data.session?.access_token;
     if (!token) { setErr("Sua sessão expirou. Entre de novo."); return; }
     for (const arq of lista) {
+      // mesmo arquivo escolhido duas vezes (clique duplo, arrastar + clicar): envia só uma vez
+      const jaTem = (e: { nome: string; tamanho: number }) => e.nome === arq.name && e.tamanho === arq.size;
+      if (enviosRef.current.some(e => jaTem(e) && !e.erro) || antigos.some(x => x.nome === arq.name && x.tamanho === arq.size)) continue;
       const chave = Math.random().toString(36).slice(2);
       const base: Envio = { chave, nome: arq.name, tamanho: arq.size, tipo: arq.type, p: 0 };
       if (!/^(image|video)\//.test(arq.type)) { setEnvios(l => [...l, { ...base, erro: "Só imagem ou vídeo." }]); continue; }
       if (arq.size > MAX) { setEnvios(l => [...l, { ...base, erro: "Passa de 50 MB. Envie pelo link do Drive." }]); continue; }
-      setEnvios(l => [...l, base]);
+      setEnvios(l => [...l, base]); enviosRef.current = [...enviosRef.current, base];
       const caminho = `${i.id}/${Date.now()}-${nomeSeguro(arq.name)}`;
       try {
         await enviar(caminho, arq, token, p => atualizar(chave, { p }));
