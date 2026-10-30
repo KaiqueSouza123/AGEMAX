@@ -87,7 +87,8 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
   const set = (k: keyof Item, v: any) => setF(x => ({ ...x, [k]: v }));
   const escolherCliente = (id: string) => setF(x => ({ ...x, cliente_id: id, responsavel_id: func ? d.me.id : (x.responsavel_id || d.cliente(id)?.responsavel_id || null) }));
   const clientesForm = d.clientes.filter(c => c.ativo && (!func || c.responsavel_id === d.me.id));
-  const podeApagar = !func || ["A fazer", "Em produção", "Ajustes"].includes(item?.status || "");
+  // funcionário exclui os posts dele nos clientes dele, em qualquer fase (até aprovado)
+  const podeApagar = !func || (item?.tipo !== "Prazo do cliente" && d.cliente(item?.cliente_id || "")?.responsavel_id === d.me.id);
 
   const salvar = async (e: FormEvent) => {
     e.preventDefault();
@@ -98,8 +99,13 @@ export function ItemForm({ d, item, fechar }: { d: Dados; item: Partial<Item> | 
   const apagar = async () => {
     if (!item?.id) return;
     const ok = await run(async () => {
+      const fs = await supabase.from("entrega_arquivos").select("caminho,miniatura").eq("item_id", item.id!);
+      const caminhos = ((fs.data || []) as { caminho: string; miniatura: string | null }[]).flatMap(a => [a.caminho, ...(a.miniatura ? [a.miniatura] : [])]);
       const r = await supabase.from("itens").delete().eq("id", item.id!).select("id");
-      if (!r.error && !(r.data || []).length) return { error: { message: "Você não pode excluir este post (só posts seus, de clientes seus, que ainda não foram entregues)." } };
+      if (!r.error && !(r.data || []).length) return { error: { message: "Você não pode excluir este post (só posts seus, de clientes seus)." } };
+      // depois de excluir, tira os arquivos do armazenamento (a cópia no Google Drive continua).
+      // O que sobrar, a limpeza automática do dono apaga.
+      if (!r.error && caminhos.length) await supabase.storage.from("entregas").remove(caminhos).catch(() => null);
       return r;
     });
     if (ok) { fechar(); d.aviso("Post excluído"); d.recarregar(); }

@@ -348,7 +348,29 @@ export async function limparArquivos(): Promise<number> {
     await supabase.from("entrega_arquivos").update({ removido_em: new Date().toISOString() }).in("id", lote.map(a => a.id));
   }
   if (sel.length) await supabase.from("manutencao").upsert({ chave: "limpeza_mes", valor: inicioMes.slice(0, 7), em: new Date().toISOString() });
+  await limparOrfaos().catch(() => 0);
   return sel.length;
+}
+
+/* arquivos de posts que foram excluídos (pasta com o número de um post que não existe mais) */
+async function limparOrfaos(): Promise<number> {
+  const raiz = await supabase.storage.from(BUCKET).list("", { limit: 1000 });
+  const pastas = (raiz.data || []).filter(x => !x.id && /^\d+$/.test(x.name)).map(x => Number(x.name));
+  if (!pastas.length) return 0;
+  const vivos = new Set<number>();
+  for (let k = 0; k < pastas.length; k += 200) {
+    const r = await supabase.from("itens").select("id").in("id", pastas.slice(k, k + 200));
+    if (r.error) return 0; // na dúvida, não apaga nada
+    for (const x of r.data || []) vivos.add(x.id as number);
+  }
+  let n = 0;
+  for (const id of pastas.filter(p => !vivos.has(p))) {
+    const fs = await supabase.storage.from(BUCKET).list(String(id), { limit: 1000 });
+    const mini = await supabase.storage.from(BUCKET).list(`${id}/mini`, { limit: 1000 });
+    const nomes = [...(fs.data || []).filter(x => x.id).map(x => `${id}/${x.name}`), ...(mini.data || []).filter(x => x.id).map(x => `${id}/mini/${x.name}`)];
+    if (nomes.length && !(await supabase.storage.from(BUCKET).remove(nomes)).error) n += nomes.length;
+  }
+  return n;
 }
 
 /* ============ baixar as artes de vários posts de uma vez (ZIP) ============ */
